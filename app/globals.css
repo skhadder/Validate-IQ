@@ -217,3 +217,24 @@
   stroke-dashoffset: 1000;
   animation: draw-line 2s ease-out forwards;
 }
+
+/* Final CTA — soft breathing pulse on input bar (box-shadow) */
+@keyframes cta-input-breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(99, 102, 241, 0.08),
+      0 0 18px rgba(99, 102, 241, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(99, 102, 241, 0.22),
+      0 0 32px rgba(99, 102, 241, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+}
+
+.cta-input-breathe {
+  animation: cta-input-breathe 2s ease-in-out infinite;
+}

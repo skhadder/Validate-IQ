@@ -7,7 +7,6 @@ import { StatsSection } from "@/components/stats-section"
 import { TrustSection } from "@/components/trust-section"
 import { Pricing } from "@/components/pricing"
 import { FinalCTA } from "@/components/final-cta"
-import { Footer } from "@/components/footer"
 
 export default function Home() {
   return (
@@ -21,7 +20,6 @@ export default function Home() {
         <Pricing />
         <TrustSection />
         <FinalCTA />
-        <Footer />
       </main>
     </SmoothScroll>
   )
