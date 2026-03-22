@@ -164,19 +164,30 @@ Return JSON only. No markdown. No preamble. No explanation. Just the raw JSON ob
     const [snap, mkt, comp, entry, verdict, devil] = await Promise.all([
 
       // CALL 1 — Idea Snapshot
-      existingReport 
-        ? Promise.resolve({ data: null, error: null }) 
+      existingReport
+        ? Promise.resolve({ data: null, error: null })
         : callPerplexity([
             { role: "system", content: systemPrompt() },
             {
               role: "user",
               content: `For this startup idea: "${idea}"
-Analyze it carefully. If the idea is niche, identify the specific problem it solves and the precise customer segment it targets — do not generalize. clarityScore (0-10) should reflect how clearly the idea is defined, not how big the market is.
+Analyze it carefully. If the idea is niche, identify the specific problem it solves and the precise customer segment — do not generalize.
+
+First reason through these 3 dimensions, then score each 0-10:
+- problemClarity: How clearly is the problem defined? (1-3=vague, 4-6=clear enough, 7-10=razor sharp)
+- solutionClarity: How clearly is the solution defined? (1-3=vague, 4-6=clear enough, 7-10=specific and concrete)
+- customerClarity: How precisely is the target customer defined? (1-3=everyone/generic, 4-6=a segment, 7-10=a specific person with a specific pain)
+
+Compute clarityScore as the average of the 3 sub-scores, rounded to 1 decimal.
+
 Return this exact JSON:
 {
   "oneLiner": string,
   "problem": string,
   "targetCustomer": string,
+  "problemClarity": number,
+  "solutionClarity": number,
+  "customerClarity": number,
   "clarityScore": number
 }`,
             },
@@ -237,9 +248,23 @@ Return this exact JSON:
           role: "user",
           content: `For this startup idea: "${idea}"
 ${founderCtx}
-Rate how easy it is for a new founder to enter this market (entryScore 0-10, where 10 = very easy to get started). Consider: regulatory complexity, capital requirements, incumbent moats, technical difficulty. A niche idea with low competition should score higher, not lower. Be specific about the 3 real barriers and 2 genuine advantages this founder has given their profile.
+
+Score how easy market entry is for THIS specific founder (higher = easier entry). Use these 4 dimensions, each 0-10:
+
+- regulatoryScore: How free is this market from regulation/compliance barriers? (1-3=heavily regulated, 4-6=some compliance needed, 7-10=no significant regulation)
+- capitalScore: How low are the capital requirements to get started? (1-3=needs $1M+, 4-6=needs $50K-$500K, 7-10=can start with <$10K)
+- technicalScore: How achievable is the MVP technically for this founder's profile? (1-3=requires rare expertise, 4-6=hard but possible, 7-10=straightforward to build)
+- competitionScore: How much room is there to enter given existing players? (1-3=dominated by giants, 4-6=competitive but beatable, 7-10=clear gap exists)
+
+Compute entryScore as the average of the 4 sub-scores, rounded to 1 decimal.
+List the 3 biggest real barriers and 2 genuine advantages specific to this founder's profile.
+
 Return this exact JSON:
 {
+  "regulatoryScore": number,
+  "capitalScore": number,
+  "technicalScore": number,
+  "competitionScore": number,
   "entryScore": number,
   "barriers": [string, string, string],
   "advantages": [string, string],
@@ -255,10 +280,27 @@ Return this exact JSON:
           role: "user",
           content: `For this startup idea: "${idea}"
 ${founderCtx}
-Give an honest viability assessment. viabilityScore is 0-9 (9 = highly viable). A niche idea can be highly viable — score based on: real demand, founder-market fit, defensibility, and monetization potential. Do NOT penalize for being niche. topReasons and topRisks must be specific to THIS idea, not generic startup risks. nextAction should be the single most important thing this founder should do in the next 7 days.
+
+Score viability using 4 dimensions, each 0-9:
+
+- demandScore: Is there real, proven demand for this? (1-3=speculative/no evidence, 4-6=some signals, 7-9=strong evidence of demand. Reference: a todo app=3, Stripe in 2010=8)
+- founderFitScore: How well does this founder's profile match what this idea needs? (1-3=major skill/resource gaps, 4-6=workable fit, 7-9=strong match. Reference: non-technical founder building dev tools=2, developer building dev tools=8)
+- defensibilityScore: Can this build a moat over time? (1-3=easily copied, 4-6=some differentiation, 7-9=strong moat potential. Reference: generic SaaS dashboard=2, network-effect marketplace=8)
+- monetizationScore: How clear and proven is the path to revenue? (1-3=unclear how to charge, 4-6=plausible model, 7-9=clear willingness to pay. Reference: free consumer app=2, B2B workflow tool=7)
+
+Compute viabilityScore as the average of the 4 sub-scores, rounded to 1 decimal.
+Then decide verdict: "GO" if viabilityScore >= 7, "CONDITIONAL GO" if >= 4.5, "NO-GO" if below.
+topReasons and topRisks must be specific to THIS idea — not generic startup advice.
+nextAction = the single most important thing this founder should do in the next 7 days.
+
 Return this exact JSON:
 {
+  "demandScore": number,
+  "founderFitScore": number,
+  "defensibilityScore": number,
+  "monetizationScore": number,
   "viabilityScore": number,
+  "verdict": "GO" | "CONDITIONAL GO" | "NO-GO",
   "topReasons": [string, string, string],
   "topRisks": [string, string, string],
   "nextAction": string

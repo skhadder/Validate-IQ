@@ -14,6 +14,7 @@ import {
   BookOpen,
   ArrowLeft,
   Trash2,
+  Home,
 } from "lucide-react"
 import demoData from "@/lib/demo-data.json"
 
@@ -319,12 +320,23 @@ function Sidebar({
 // ─── Top Bar ─────────────────────────────────────────────────────────────────
 
 function TopBar() {
+  const router = useRouter()
   return (
     <div
       className="relative h-14 flex items-center justify-between px-6 border-b shrink-0"
       style={{ borderColor: "#2A2D35" }}
     >
-      <span className="text-base font-medium text-white">Workspace</span>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => router.push("/")}
+          className="w-8 h-8 rounded-md flex items-center justify-center transition-colors hover:bg-white/10"
+          style={{ color: "#6B7280" }}
+          title="Home"
+        >
+          <Home size={16} />
+        </button>
+        <span className="text-base font-medium text-white">Workspace</span>
+      </div>
       <span className="absolute left-1/2 -translate-x-1/2 text-xl font-bold tracking-wide text-[#10B981]">VERDICT</span>
     </div>
   )

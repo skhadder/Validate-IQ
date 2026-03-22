@@ -79,19 +79,31 @@ function FundingTicker() {
 export function Navbar() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [hidden, setHidden] = useState(false)
   const navRef = useRef<HTMLDivElement>(null)
+  const lastScrollY = useRef(0)
   const router = useRouter()
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const current = window.scrollY
+      setHidden(current > lastScrollY.current && current > 80)
+      lastScrollY.current = current
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
 
   return (
     <motion.header
       initial={{ y: -100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      animate={{ y: hidden ? -120 : 0, opacity: hidden ? 0 : 1 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       className="fixed top-4 left-4 right-4 z-50"
     >
       <nav ref={navRef} className="relative flex items-center justify-between">
         {/* Logo — extreme left */}
-        <a href="#" className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#000000]/90 backdrop-blur-md border border-[#2A2D35]">
+        <a href="/" className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#000000]/90 backdrop-blur-md border border-[#2A2D35]">
           <LogoMark />
           <span className="font-bold text-white text-lg hidden sm:block">Verdict</span>
         </a>

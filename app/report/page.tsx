@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowUp, ArrowLeft } from "lucide-react"
+import { ArrowUp, ArrowLeft, Home } from "lucide-react"
 import { toast } from "sonner"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -341,23 +341,23 @@ function IdeaProfileTab({
 
   return (
     <div className="px-3 py-2 flex-1 overflow-y-auto">
-      <p className="uppercase mb-2" style={{ fontSize: "10px", fontWeight: 500, color: "#6B7280", letterSpacing: "0.06em" }}>
+      <p className="uppercase mb-3" style={{ fontSize: "11px", fontWeight: 600, color: "#6B7280", letterSpacing: "0.08em" }}>
         Your founder profile
       </p>
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         {rows.map(({ label, key }) => (
           <div key={key} className="flex flex-col gap-1">
             <div
-              className="flex items-center justify-between rounded-md px-2 py-1.5 border"
+              className="flex items-center justify-between rounded-lg px-3 py-2.5 border"
               style={{
                 background: "#1C1F26",
                 borderColor: openField === key ? "#10B981" : "#2A2D35",
               }}
             >
-              <span className="shrink-0 mr-2" style={{ fontSize: "11px", color: "#6B7280" }}>
+              <span className="shrink-0 mr-3" style={{ fontSize: "12px", color: "#6B7280" }}>
                 {label}
               </span>
-              <span className="font-semibold text-white flex-1 truncate mr-2" style={{ fontSize: "13px" }}>
+              <span className="font-semibold text-white flex-1 truncate mr-2" style={{ fontSize: "15px" }}>
                 {survey[key]}
               </span>
               <EditButton
@@ -377,9 +377,9 @@ function IdeaProfileTab({
                       setOpenField(null)
                       onFieldSelect(key, opt)
                     }}
-                    className="rounded-full border px-2.5 py-1 transition-colors text-left"
+                    className="rounded-full border px-3 py-1 transition-colors text-left"
                     style={{
-                      fontSize: "11px",
+                      fontSize: "12px",
                       background: survey[key] === opt ? "#10B981" : "transparent",
                       borderColor: survey[key] === opt ? "#10B981" : "#2A2D35",
                       color: survey[key] === opt ? "#ffffff" : "#9CA3AF",
@@ -500,24 +500,35 @@ function Chatbot({
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(false)
   const [chatHeight, setChatHeight] = useState(200)
+  const chatHeightRef = useRef(200)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const chatScrollRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{ startY: number; startHeight: number } | null>(null)
+  const rafRef = useRef<number | null>(null)
 
   function onDragStart(e: React.MouseEvent) {
     e.preventDefault()
-    dragRef.current = { startY: e.clientY, startHeight: chatHeight }
+    dragRef.current = { startY: e.clientY, startHeight: chatHeightRef.current }
     document.body.style.cursor = "ns-resize"
     document.body.style.userSelect = "none"
 
     function onMouseMove(ev: MouseEvent) {
       if (!dragRef.current) return
-      // dragging UP (smaller clientY) → bigger panel
-      const delta = dragRef.current.startY - ev.clientY
-      const next = Math.min(480, Math.max(80, dragRef.current.startHeight + delta))
-      setChatHeight(next)
+      if (rafRef.current) return // skip if frame pending
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null
+        if (!dragRef.current) return
+        const delta = dragRef.current.startY - ev.clientY
+        const next = Math.min(480, Math.max(80, dragRef.current.startHeight + delta))
+        chatHeightRef.current = next
+        // Write directly to DOM — no React re-render during drag
+        if (chatScrollRef.current) chatScrollRef.current.style.height = `${next}px`
+      })
     }
 
     function onMouseUp() {
+      // Commit final value to React state once on release
+      setChatHeight(chatHeightRef.current)
       dragRef.current = null
       document.body.style.cursor = ""
       document.body.style.userSelect = ""
@@ -584,18 +595,18 @@ function Chatbot({
       </div>
 
       <div className="flex flex-col gap-2 px-3 pb-3">
-        <p className="uppercase" style={{ fontSize: "10px", fontWeight: 500, color: "#6B7280", letterSpacing: "0.06em" }}>
+        <p className="uppercase" style={{ fontSize: "11px", fontWeight: 600, color: "#6B7280", letterSpacing: "0.08em" }}>
           Ask Verdict
         </p>
 
         {/* Suggestion pills */}
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1.5">
           {SUGGESTIONS.map((s) => (
             <button
               key={s}
               onClick={() => sendMessage(s)}
-              className="px-2 py-0.5 rounded-full border transition-colors hover:border-[#10B981] hover:text-white"
-              style={{ fontSize: "11px", borderColor: "#2A2D35", color: "#6B7280", background: "transparent" }}
+              className="px-3 py-1 rounded-full border transition-colors hover:border-[#10B981] hover:text-white"
+              style={{ fontSize: "12px", borderColor: "#2A2D35", color: "#6B7280", background: "transparent" }}
             >
               {s}
             </button>
@@ -604,8 +615,8 @@ function Chatbot({
 
         {/* Message area */}
         <div
-          ref={scrollRef}
-          className="flex flex-col gap-1.5 overflow-y-auto transition-all duration-300"
+          ref={(el) => { (scrollRef as React.MutableRefObject<HTMLDivElement | null>).current = el; (chatScrollRef as React.MutableRefObject<HTMLDivElement | null>).current = el }}
+          className="flex flex-col gap-1.5 overflow-y-auto"
           style={{ height: chatHeight, minHeight: 80 }}
         >
           {messages.map((m, i) => (
@@ -619,9 +630,9 @@ function Chatbot({
                 </div>
               )}
               <div
-                className="px-2 py-1.5 rounded-md border max-w-[85%]"
+                className="px-2.5 py-1.5 rounded-md border max-w-[85%]"
                 style={{
-                  fontSize: "12px",
+                  fontSize: "13px",
                   lineHeight: "1.75",
                   background: m.role === "bot" ? "#1C1F26" : "#111318",
                   borderColor: "#2A2D35",
@@ -1044,6 +1055,7 @@ export default function ReportPage() {
   const [survey, setSurvey] = useState<Survey | null>(null)
   const [isDemoMode, setIsDemoMode] = useState(false)
   const [activeTab, setActiveTab] = useState<"profile" | "sources">("profile")
+  const [activeReportTab, setActiveReportTab] = useState<"overview" | "market" | "competition" | "entry" | "verdict">("overview")
   const [chatInput, setChatInput] = useState("")
   const [pdfLoading, setPdfLoading] = useState(false)
   const [reportDate, setReportDate] = useState<string>("")
@@ -1263,9 +1275,9 @@ export default function ReportPage() {
             >
               V
             </div>
-            <span className="text-[13px] font-semibold text-white">Verdict</span>
+            <span className="text-base font-semibold text-white">Verdict</span>
           </div>
-          <p className="text-[11px] leading-relaxed line-clamp-2" style={{ color: "#9CA3AF" }}>
+          <p className="text-sm leading-relaxed line-clamp-2" style={{ color: "#9CA3AF" }}>
             {idea}
           </p>
         </div>
@@ -1276,7 +1288,7 @@ export default function ReportPage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className="flex-1 py-2 text-[11px] font-medium transition-colors border-b-[3px]"
+              className="flex-1 py-2 text-sm font-medium transition-colors border-b-[3px]"
               style={{
                 borderColor: activeTab === tab ? "#10B981" : "transparent",
                 color: activeTab === tab ? "#ffffff" : "#6B7280",
@@ -1324,22 +1336,30 @@ export default function ReportPage() {
         )}
         {/* Topbar */}
         <div
-          className="flex items-center justify-between px-4 py-2.5 border-b shrink-0 print-hide"
-          style={{ borderColor: "#2A2D35", minHeight: 44 }}
+          className="flex items-center justify-between px-5 py-3.5 border-b shrink-0 print-hide"
+          style={{ borderColor: "#2A2D35", minHeight: 56 }}
         >
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[12px] font-bold text-white">Validation report</span>
-            <span className="text-[10px]" style={{ color: "#6B7280" }}>
+          <div className="flex flex-col gap-1">
+            <span className="text-base font-bold text-white">Validation report</span>
+            <span className="text-xs" style={{ color: "#6B7280" }}>
               {reportDate
                 ? `Generated ${new Date(reportDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
                 : "Generated today"}{" "}
               · 6 sections · {survey.geography} market
             </span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push("/")}
+              className="w-8 h-8 rounded-md flex items-center justify-center transition-colors hover:bg-white/10"
+              style={{ color: "#6B7280" }}
+              title="Home"
+            >
+              <Home size={16} />
+            </button>
             <button
               onClick={handleRevalidate}
-              className="text-[10px] px-2.5 py-1 rounded-md border transition-colors hover:border-[#10B98140]"
+              className="text-sm px-3.5 py-1.5 rounded-md border transition-colors hover:border-[#10B98140]"
               style={{ borderColor: "#2A2D35", color: "#9CA3AF" }}
             >
               Re-validate
@@ -1347,7 +1367,7 @@ export default function ReportPage() {
             <button
               onClick={handleDownloadPDF}
               disabled={pdfLoading}
-              className="text-[10px] px-2.5 py-1 rounded-md font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-60"
+              className="text-sm px-3.5 py-1.5 rounded-md font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-60"
               style={{ background: "#10B981" }}
             >
               {pdfLoading ? "Generating…" : "Download PDF"}
@@ -1355,55 +1375,98 @@ export default function ReportPage() {
           </div>
         </div>
 
-        {/* Scrollable cards area */}
-        <div
-          ref={rightPanelRef}
-          className="flex-1 overflow-y-auto flex flex-col gap-3.5"
-          style={{ padding: "16px 18px" }}
-        >
-          {isDemoMode && (
-            <div
-              className="text-[10px] px-3 py-1.5 rounded-md border"
-              style={{ background: "#1C1F26", borderColor: "#2A2D35", color: "#34D399", borderWidth: "0.5px" }}
-            >
-              Demo mode — results are pre-loaded for speed
-            </div>
-          )}
+        {/* Tab bar */}
+        {(() => {
+          const TABS = [
+            { id: "overview", label: "Overview" },
+            { id: "market", label: "Market" },
+            { id: "competition", label: "Competition" },
+            { id: "entry", label: "Entry" },
+            { id: "verdict", label: "Verdict" },
+          ] as const
+          type TabId = typeof TABS[number]["id"]
+          return (
+            <>
+              <div className="flex border-b shrink-0 px-5 print-hide" style={{ borderColor: "#2A2D35" }}>
+                {TABS.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setActiveReportTab(t.id)}
+                    className="px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px"
+                    style={{
+                      borderColor: activeReportTab === t.id ? "#10B981" : "transparent",
+                      color: activeReportTab === t.id ? "#ffffff" : "#6B7280",
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
 
-          {/* Summary card */}
-          <SummaryCard verdict={report.verdict} entryScore={report.entryScore} />
+              {/* Tab content */}
+              <div
+                ref={rightPanelRef}
+                className="flex-1 overflow-y-auto flex flex-col gap-3.5"
+                style={{ padding: "16px 18px" }}
+              >
+                {isDemoMode && (
+                  <div
+                    className="text-[10px] px-3 py-1.5 rounded-md border"
+                    style={{ background: "#1C1F26", borderColor: "#2A2D35", color: "#34D399", borderWidth: "0.5px" }}
+                  >
+                    Demo mode — results are pre-loaded for speed
+                  </div>
+                )}
 
-          <Card1Snapshot
-            data={report.snapshot}
-            confidence={report.confidence?.snapshot ?? "Medium"}
-            onEdit={() => focusChatInput(CARD_EDIT_MESSAGES.snapshot)}
-          />
-          <Card2Market
-            data={report.market}
-            confidence={report.confidence?.market ?? "Medium"}
-            onEdit={() => focusChatInput(CARD_EDIT_MESSAGES.market)}
-          />
-          <Card3Competitors
-            data={report.competitors}
-            confidence={report.confidence?.competitors ?? "Medium"}
-            onEdit={() => focusChatInput(CARD_EDIT_MESSAGES.competitors)}
-          />
-          <Card4EntryScore
-            data={report.entryScore}
-            confidence={report.confidence?.entryScore ?? "Medium"}
-            onEdit={() => focusChatInput(CARD_EDIT_MESSAGES.entryScore)}
-          />
-          <Card5Verdict
-            data={report.verdict}
-            confidence={report.confidence?.verdict ?? "Medium"}
-            onEdit={() => focusChatInput(CARD_EDIT_MESSAGES.verdict)}
-          />
-          <Card6DevilsAdvocate
-            data={report.devilsAdvocate}
-            confidence={report.confidence?.devilsAdvocate ?? "Medium"}
-            onEdit={() => focusChatInput(CARD_EDIT_MESSAGES.devilsAdvocate)}
-          />
-        </div>
+                {activeReportTab === "overview" && (
+                  <>
+                    <SummaryCard verdict={report.verdict} entryScore={report.entryScore} />
+                    <Card1Snapshot
+                      data={report.snapshot}
+                      confidence={report.confidence?.snapshot ?? "Medium"}
+                      onEdit={() => focusChatInput(CARD_EDIT_MESSAGES.snapshot)}
+                    />
+                  </>
+                )}
+                {activeReportTab === "market" && (
+                  <Card2Market
+                    data={report.market}
+                    confidence={report.confidence?.market ?? "Medium"}
+                    onEdit={() => focusChatInput(CARD_EDIT_MESSAGES.market)}
+                  />
+                )}
+                {activeReportTab === "competition" && (
+                  <Card3Competitors
+                    data={report.competitors}
+                    confidence={report.confidence?.competitors ?? "Medium"}
+                    onEdit={() => focusChatInput(CARD_EDIT_MESSAGES.competitors)}
+                  />
+                )}
+                {activeReportTab === "entry" && (
+                  <Card4EntryScore
+                    data={report.entryScore}
+                    confidence={report.confidence?.entryScore ?? "Medium"}
+                    onEdit={() => focusChatInput(CARD_EDIT_MESSAGES.entryScore)}
+                  />
+                )}
+                {activeReportTab === "verdict" && (
+                  <>
+                    <Card5Verdict
+                      data={report.verdict}
+                      confidence={report.confidence?.verdict ?? "Medium"}
+                      onEdit={() => focusChatInput(CARD_EDIT_MESSAGES.verdict)}
+                    />
+                    <Card6DevilsAdvocate
+                      data={report.devilsAdvocate}
+                      confidence={report.confidence?.devilsAdvocate ?? "Medium"}
+                      onEdit={() => focusChatInput(CARD_EDIT_MESSAGES.devilsAdvocate)}
+                    />
+                  </>
+                )}
+              </div>
+            </>
+          )
+        })()}
       </div>
     </div>
   )
