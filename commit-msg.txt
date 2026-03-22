@@ -1,6 +1,0 @@
-feat: Obsidian + Emerald theme, brand rename, and logo mark
-
-- Apply full Obsidian + Emerald color palette across all pages and components (globals.css, workspace, hero, navbar, bento-grid, pricing, stats-section, trust-section, final-cta, logo-marquee, footer).
-- Rename brand from ValidateIQ to Validate IQ everywhere.
-- Add LogoMark SVG component and replace green V-box in navbar, footer, and workspace sidebar.
-- Sync pnpm-lock.yaml with package.json (next 16.2.1) to fix Vercel frozen-lockfile build failure.
