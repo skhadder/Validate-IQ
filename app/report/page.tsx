@@ -116,7 +116,7 @@ function renderMarkdown(text: string): React.ReactNode {
         if (trimmed.startsWith("- ")) {
           return (
             <div key={i} style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
-              <span style={{ color: "#059669", fontSize: 10, marginTop: 2, flexShrink: 0 }}>●</span>
+              <span style={{ color: "#10B981", fontSize: 10, marginTop: 2, flexShrink: 0 }}>●</span>
               <span style={{ color: "#94A3B8", fontSize: 12, lineHeight: 1.5 }}>{renderInline(trimmed.slice(2))}</span>
             </div>
           )
@@ -159,27 +159,23 @@ function extractMarketValue(val: string): string {
 }
 
 function verdictColors(verdict: string) {
-  if (verdict === "GO") return { color: "#34D399", bg: "#0A2E14", barColor: "#34D399" }
-  if (verdict === "CONDITIONAL GO") return { color: "#FBBF24", bg: "#2A1E05", barColor: "#FBBF24" }
-  return { color: "#F87171", bg: "#2A0A0A", barColor: "#F87171" }
+  if (verdict === "GO") return { color: "#34D399", pillColor: "#4ADE80", bg: "#052E16", border: "1px solid #166534", barColor: "#34D399" }
+  if (verdict === "CONDITIONAL GO") return { color: "#FBBF24", pillColor: "#FCD34D", bg: "#1C1007", border: "1px solid #92400E", barColor: "#FBBF24" }
+  return { color: "#F87171", pillColor: "#F87171", bg: "#1C0507", border: "1px solid #991B1B", barColor: "#F87171" }
 }
 
 
 // ─── Small shared components ──────────────────────────────────────────────────
 
 function ConfidenceBadge({ level }: { level: string }) {
-  const color = level === "High" ? "#34D399" : level === "Medium" ? "#FBBF24" : "#F87171"
-  const bg =
+  const styles =
     level === "High"
-      ? "rgba(52,211,153,0.1)"
+      ? { color: "#4ADE80", background: "#052E16", border: "0.5px solid #166534" }
       : level === "Medium"
-      ? "rgba(251,191,36,0.1)"
-      : "rgba(248,113,113,0.1)"
+      ? { color: "#FCD34D", background: "#1C1007", border: "0.5px solid #92400E" }
+      : { color: "#F87171", background: "#1C0507", border: "0.5px solid #991B1B" }
   return (
-    <span
-      className="px-2 py-0.5 rounded-full font-semibold"
-      style={{ fontSize: "10px", color, background: bg, border: `0.5px solid ${color}30` }}
-    >
+    <span className="px-2 py-0.5 rounded-full font-semibold" style={{ fontSize: "10px", ...styles }}>
       {level} confidence
     </span>
   )
@@ -189,8 +185,8 @@ function EditButton({ onClick }: { onClick?: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="text-[9px] px-2 py-0.5 rounded-full border transition-colors hover:bg-[#0A1A10]"
-      style={{ borderColor: "#122B1A", color: "#059669" }}
+      className="rounded-full border transition-colors"
+      style={{ fontSize: "10px", color: "#60A5FA", borderColor: "#1E3A5F", background: "transparent", padding: "3px 10px" }}
     >
       Edit
     </button>
@@ -212,57 +208,59 @@ function SummaryCard({ verdict, entryScore }: { verdict: ReportData["verdict"]; 
   const vc = verdictColors(verdict.verdict)
   const viabilityPct = Math.min(100, Math.max(0, (verdict.viabilityScore / 9) * 100))
   const entryPct = Math.min(100, Math.max(0, (entryScore.entryScore / 10) * 100))
+  const viabilityDisplay = Math.round(viabilityPct)
+  const entryDisplay = Math.round(entryPct)
 
   return (
     <div
       className="rounded-lg border flex flex-col gap-3"
-      style={{ background: "#0A1A10", borderColor: "#122B1A", borderWidth: "0.5px", padding: "16px 18px" }}
+      style={{ background: "#0D1526", borderColor: "#122B1A", borderWidth: "0.5px", padding: "16px 18px" }}
     >
       <div className="flex items-start gap-6 flex-wrap">
         {/* Verdict */}
         <div className="flex flex-col gap-1">
-          <span className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: "#6B7280" }}>Verdict</span>
+          <span className="uppercase" style={{ fontSize: "10px", fontWeight: 500, color: "#4A6080", letterSpacing: "0.06em" }}>Verdict</span>
           <span
-            className="font-bold px-3 py-1 rounded-md self-start"
-            style={{ fontSize: "20px", color: vc.color, background: vc.bg }}
+            className="px-3 py-1 rounded-md self-start uppercase"
+            style={{ fontSize: "28px", fontWeight: 700, color: vc.pillColor, background: vc.bg, border: vc.border }}
           >
             {verdict.verdict}
           </span>
         </div>
         {/* Viability Score */}
         <div className="flex flex-col gap-1">
-          <span className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: "#6B7280" }}>Viability Score</span>
-          <span className="font-bold" style={{ fontSize: "36px", lineHeight: 1, color: vc.color }}>
-            {verdict.viabilityScore}<span style={{ fontSize: "16px", color: "#6B7280" }}>/9</span>
+          <span className="uppercase" style={{ fontSize: "10px", fontWeight: 500, color: "#4A6080", letterSpacing: "0.06em" }}>Viability Score</span>
+          <span style={{ fontSize: "36px", fontWeight: 700, lineHeight: 1, color: vc.color }}>
+            {viabilityDisplay}<span style={{ fontSize: "16px", color: "#4A6080" }}>/100</span>
           </span>
-          <div className="h-1 w-24 rounded-full mt-1" style={{ background: "#122B1A" }}>
+          <div className="w-24 rounded-full mt-1" style={{ height: "6px", background: "#1E2D4A" }}>
             <div className="h-full rounded-full" style={{ width: `${viabilityPct}%`, background: vc.barColor }} />
           </div>
           <div className="flex justify-between w-24">
-            <span style={{ fontSize: "8px", color: "#6B7280" }}>Low</span>
-            <span style={{ fontSize: "8px", color: "#6B7280" }}>High</span>
+            <span style={{ fontSize: "8px", color: "#4A6080" }}>Low</span>
+            <span style={{ fontSize: "8px", color: "#4A6080" }}>High</span>
           </div>
         </div>
         {/* Entry Score */}
         <div className="flex flex-col gap-1">
-          <span className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: "#6B7280" }}>Entry Score</span>
-          <span className="font-bold" style={{ fontSize: "36px", lineHeight: 1, color: "#FBBF24" }}>
-            {entryScore.entryScore}<span style={{ fontSize: "16px", color: "#6B7280" }}>/10</span>
+          <span className="uppercase" style={{ fontSize: "10px", fontWeight: 500, color: "#4A6080", letterSpacing: "0.06em" }}>Entry Score</span>
+          <span style={{ fontSize: "36px", fontWeight: 700, lineHeight: 1, color: vc.color }}>
+            {entryDisplay}<span style={{ fontSize: "16px", color: "#4A6080" }}>/100</span>
           </span>
-          <div className="h-1 w-24 rounded-full mt-1" style={{ background: "#122B1A" }}>
-            <div className="h-full rounded-full" style={{ width: `${entryPct}%`, background: "#FBBF24" }} />
+          <div className="w-24 rounded-full mt-1" style={{ height: "6px", background: "#1E2D4A" }}>
+            <div className="h-full rounded-full" style={{ width: `${entryPct}%`, background: vc.barColor }} />
           </div>
           <div className="flex justify-between w-24">
-            <span style={{ fontSize: "8px", color: "#6B7280" }}>Low</span>
-            <span style={{ fontSize: "8px", color: "#6B7280" }}>High</span>
+            <span style={{ fontSize: "8px", color: "#4A6080" }}>Low</span>
+            <span style={{ fontSize: "8px", color: "#4A6080" }}>High</span>
           </div>
         </div>
       </div>
       {verdict.nextAction && (
         <>
-          <div className="h-px w-full" style={{ background: "#122B1A" }} />
-          <p style={{ fontSize: "13px", lineHeight: "1.7", color: "#ffffff" }}>
-            <span className="font-semibold" style={{ color: "#6B7280" }}>Next: </span>
+          <div className="h-px w-full" style={{ background: "#1E2D4A" }} />
+          <p style={{ fontSize: "13px", lineHeight: "1.75", color: "#ffffff" }}>
+            <span style={{ color: "#4A6080", fontWeight: 500 }}>Next: </span>
             {verdict.nextAction}
           </p>
         </>
@@ -291,7 +289,7 @@ function IdeaProfileTab({
 
   return (
     <div className="px-3 py-2 flex-1 overflow-y-auto">
-      <p className="text-[9px] uppercase tracking-widest font-semibold mb-2" style={{ color: "#6B7280" }}>
+      <p className="uppercase mb-2" style={{ fontSize: "10px", fontWeight: 500, color: "#4A6080", letterSpacing: "0.06em" }}>
         Your founder profile
       </p>
       <div className="flex flex-col gap-1">
@@ -299,9 +297,9 @@ function IdeaProfileTab({
           <div
             key={key}
             className="flex items-center justify-between rounded-md px-2 py-1.5 border"
-            style={{ background: "#0A1A10", borderColor: "#122B1A" }}
+            style={{ background: "#0D1526", borderColor: "#122B1A" }}
           >
-            <span className="shrink-0 mr-2" style={{ fontSize: "12px", color: "#6B7280" }}>
+            <span className="shrink-0 mr-2" style={{ fontSize: "11px", color: "#64748B" }}>
               {label}
             </span>
             <span className="font-semibold text-white flex-1 truncate mr-2" style={{ fontSize: "13px" }}>
@@ -508,7 +506,7 @@ function Chatbot({
       </div>
 
       <div className="flex flex-col gap-2 px-3 pb-3">
-        <p className="text-[9px] uppercase tracking-widest font-semibold" style={{ color: "#6B7280" }}>
+        <p className="uppercase" style={{ fontSize: "10px", fontWeight: 500, color: "#4A6080", letterSpacing: "0.06em" }}>
           Ask ValidateIQ
         </p>
 
@@ -537,7 +535,7 @@ function Chatbot({
               {m.role === "bot" && (
                 <div
                   className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white shrink-0 mt-0.5"
-                  style={{ background: "#059669" }}
+                  style={{ background: "#10B981" }}
                 >
                   V
                 </div>
@@ -546,8 +544,8 @@ function Chatbot({
                 className="px-2 py-1.5 rounded-md border max-w-[85%]"
                 style={{
                   fontSize: "12px",
-                  lineHeight: "1.6",
-                  background: m.role === "bot" ? "#0A1A10" : "#050F09",
+                  lineHeight: "1.75",
+                  background: m.role === "bot" ? "#0D1526" : "#111827",
                   borderColor: "#122B1A",
                   color: m.role === "bot" ? "#94A3B8" : "#CBD5E1",
                 }}
@@ -560,7 +558,7 @@ function Chatbot({
             <div className="flex gap-1.5">
               <div
                 className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white shrink-0"
-                style={{ background: "#059669" }}
+                style={{ background: "#10B981" }}
               >
                 V
               </div>
@@ -595,7 +593,7 @@ function Chatbot({
           <button
             onClick={() => sendMessage(inputValue)}
             className="w-[26px] h-[26px] rounded-md flex items-center justify-center shrink-0 transition-opacity hover:opacity-80"
-            style={{ background: "#059669" }}
+            style={{ background: "#10B981" }}
           >
             <ArrowUp size={12} className="text-white" />
           </button>
@@ -622,14 +620,14 @@ function CardShell({
     <div
       className="rounded-lg border flex flex-col gap-3"
       style={{
-        background: "#0A1A10",
+        background: "#0D1526",
         borderColor: "#122B1A",
         borderWidth: "0.5px",
         padding: "16px 18px",
       }}
     >
       <div className="flex items-center justify-between">
-        <span className="font-semibold text-white" style={{ fontSize: "15px" }}>{title}</span>
+        <span className="text-white" style={{ fontSize: "16px", fontWeight: 600, letterSpacing: "-0.2px" }}>{title}</span>
         <div className="flex items-center gap-1.5">
           {confidence && <ConfidenceBadge level={confidence} />}
           <EditButton onClick={onEdit} />
@@ -651,23 +649,23 @@ function Card1Snapshot({
 }) {
   return (
     <CardShell title="Idea snapshot" confidence={confidence} onEdit={onEdit}>
-      <p className="font-medium text-white" style={{ fontSize: "14px", lineHeight: "1.6" }}>
+      <p className="text-white" style={{ fontSize: "15px", fontWeight: 600, lineHeight: "1.75" }}>
         {data.oneLiner}
       </p>
       <div className="flex flex-col gap-2">
-        <p style={{ fontSize: "13px", lineHeight: "1.7", color: "#94A3B8" }}>
-          <span className="font-bold" style={{ color: "#6B7280" }}>Problem: </span>
+        <p style={{ fontSize: "13px", fontWeight: 400, lineHeight: "1.75", color: "#94A3B8" }}>
+          <span style={{ color: "#34D399", fontWeight: 600 }}>Problem: </span>
           {data.problem}
         </p>
-        <p style={{ fontSize: "13px", lineHeight: "1.7", color: "#94A3B8" }}>
-          <span className="font-bold" style={{ color: "#6B7280" }}>Customer: </span>
+        <p style={{ fontSize: "13px", fontWeight: 400, lineHeight: "1.75", color: "#94A3B8" }}>
+          <span style={{ color: "#60A5FA", fontWeight: 600 }}>Customer: </span>
           {data.targetCustomer}
         </p>
       </div>
       <div className="flex items-center gap-1.5 flex-wrap">
         <span
           className="px-2 py-0.5 rounded-full border font-medium"
-          style={{ fontSize: "10px", background: "rgba(5,150,105,0.12)", borderColor: "#05966940", color: "#34D399" }}
+          style={{ fontSize: "10px", background: "rgba(5,150,105,0.12)", borderColor: "#10B98140", color: "#34D399" }}
         >
           Clarity {data.clarityScore}/10
         </span>
@@ -685,14 +683,11 @@ function Card2Market({
   confidence: string
   onEdit: () => void
 }) {
-  const timingColor =
-    data.marketTiming === "Early" ? "#34D399" : data.marketTiming === "Peak" ? "#FBBF24" : "#F87171"
-
   return (
     <CardShell title="Market signals" confidence={confidence} onEdit={onEdit}>
       <div
         className="grid grid-cols-3 gap-1 rounded-md p-2"
-        style={{ background: "#050F09" }}
+        style={{ background: "#111827" }}
       >
         {[
           { label: "TAM", value: data.tam },
@@ -700,7 +695,7 @@ function Card2Market({
           { label: "SOM", value: data.som },
         ].map(({ label, value }) => (
           <div key={label} className="flex flex-col items-center py-1">
-            <span className="font-bold text-white" style={{ fontSize: "22px" }}>
+            <span className="font-bold text-white" style={{ fontSize: "28px" }}>
               {extractMarketValue(value)}
             </span>
             <span style={{ fontSize: "11px", color: "#6B7280" }}>{label}</span>
@@ -710,22 +705,24 @@ function Card2Market({
       <div className="flex items-center gap-1.5 flex-wrap">
         {data.growthRate && (
           <span
-            className="text-[9px] px-2 py-0.5 rounded-full font-medium"
-            style={{ background: "rgba(52,211,153,0.1)", color: "#34D399", border: "0.5px solid #34D39930" }}
+            style={{ fontSize: "12px", fontWeight: 500, padding: "4px 12px", borderRadius: "99px", background: "#052E16", color: "#4ADE80" }}
           >
             {data.growthRate}
           </span>
         )}
         {data.marketTiming && (
           <span
-            className="text-[9px] px-2 py-0.5 rounded-full font-medium"
-            style={{ background: `${timingColor}15`, color: timingColor, border: `0.5px solid ${timingColor}30` }}
+            style={{
+              fontSize: "12px", fontWeight: 500, padding: "4px 12px", borderRadius: "99px",
+              background: data.marketTiming === "Early" ? "#0A1E3A" : data.marketTiming === "Peak" ? "#1C1007" : "#1C0507",
+              color: data.marketTiming === "Early" ? "#60A5FA" : data.marketTiming === "Peak" ? "#FCD34D" : "#F87171",
+            }}
           >
             {data.marketTiming} stage
           </span>
         )}
       </div>
-      <p style={{ fontSize: "13px", lineHeight: "1.7", color: "#6B7280" }}>
+      <p style={{ fontSize: "13px", fontWeight: 400, lineHeight: "1.75", color: "#94A3B8" }}>
         {data.marketTimingReason}
       </p>
     </CardShell>
@@ -751,10 +748,10 @@ function Card3Competitors({
             style={{ borderColor: "#122B1A" }}
           >
             <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="font-semibold text-white" style={{ fontSize: "13px" }}>
+              <span className="text-white" style={{ fontSize: "14px", fontWeight: 600 }}>
                 {c.name}
               </span>
-              <span style={{ fontSize: "11px", color: "#94A3B8" }}>
+              <span style={{ fontSize: "11px", color: "#64748B" }}>
                 {c.funding} · {c.pricing} · {c.lastActivity}
               </span>
             </div>
@@ -763,12 +760,12 @@ function Card3Competitors({
       </div>
       <div
         className="rounded-md p-2 mt-1"
-        style={{ background: "#0A1A10", border: "0.5px solid #122B1A" }}
+        style={{ background: "#111827", border: "0.5px solid #122B1A" }}
       >
         <p className="font-bold mb-1" style={{ fontSize: "10px", color: "#34D399" }}>
           Gap identified
         </p>
-        <p style={{ fontSize: "13px", lineHeight: "1.7", color: "#6B7280" }}>
+        <p style={{ fontSize: "13px", fontWeight: 400, lineHeight: "1.75", color: "#94A3B8" }}>
           {data.gapStatement}
         </p>
       </div>
@@ -780,17 +777,22 @@ function Card4EntryScore({
   data,
   confidence,
   onEdit,
+  verdictColor,
+  verdictBarColor,
 }: {
   data: ReportData["entryScore"]
   confidence: string
   onEdit: () => void
+  verdictColor: string
+  verdictBarColor: string
 }) {
   const pct = Math.min(100, Math.max(0, (data.entryScore / 10) * 100))
+  const displayScore = Math.round(pct)
   return (
     <CardShell title="Market entry score" confidence={confidence} onEdit={onEdit}>
       <div className="flex items-center gap-2">
-        <span className="font-bold" style={{ fontSize: "32px", color: "#FBBF24" }}>
-          {data.entryScore}/10
+        <span style={{ fontSize: "36px", fontWeight: 700, color: verdictColor }}>
+          {displayScore}<span style={{ fontSize: "16px", color: "#4A6080" }}>/100</span>
         </span>
         {data.barrierLevel && (
           <span
@@ -801,29 +803,29 @@ function Card4EntryScore({
           </span>
         )}
       </div>
-      <p style={{ fontSize: "11px", color: "#6B7280" }}>Based on your founder profile</p>
-      <div className="h-[5px] w-full rounded-full" style={{ background: "#122B1A" }}>
-        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: "#FBBF24" }} />
+      <p style={{ fontSize: "11px", color: "#64748B" }}>Based on your founder profile</p>
+      <div className="w-full rounded-full" style={{ height: "6px", background: "#1E2D4A" }}>
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: verdictBarColor }} />
       </div>
       <div className="flex justify-between mt-1">
-        <span style={{ fontSize: "9px", color: "#6B7280" }}>Low Risk</span>
-        <span style={{ fontSize: "9px", color: "#6B7280" }}>High Risk</span>
+        <span style={{ fontSize: "9px", color: "#4A6080" }}>Low Risk</span>
+        <span style={{ fontSize: "9px", color: "#4A6080" }}>High Risk</span>
       </div>
       <div className="flex flex-col gap-1.5 mt-1">
-        <p className="uppercase tracking-wide font-semibold" style={{ fontSize: "10px", color: "#6B7280" }}>Barriers</p>
+        <p className="uppercase tracking-wide" style={{ fontSize: "10px", fontWeight: 500, color: "#4A6080" }}>Barriers</p>
         {(data.barriers ?? []).map((b, i) => (
           <div key={i} className="flex gap-1.5 items-start">
             <Dot color="#F87171" />
-            <span style={{ fontSize: "13px", lineHeight: "1.7", color: "#94A3B8" }}>{b}</span>
+            <span style={{ fontSize: "13px", fontWeight: 400, lineHeight: "1.75", color: "#94A3B8" }}>{b}</span>
           </div>
         ))}
       </div>
       <div className="flex flex-col gap-1.5 mt-1">
-        <p className="uppercase tracking-wide font-semibold" style={{ fontSize: "10px", color: "#6B7280" }}>Advantages</p>
+        <p className="uppercase tracking-wide" style={{ fontSize: "10px", fontWeight: 500, color: "#4A6080" }}>Advantages</p>
         {(data.advantages ?? []).map((a, i) => (
           <div key={i} className="flex gap-1.5 items-start">
             <Dot color="#34D399" />
-            <span style={{ fontSize: "13px", lineHeight: "1.7", color: "#94A3B8" }}>{a}</span>
+            <span style={{ fontSize: "13px", fontWeight: 400, lineHeight: "1.75", color: "#94A3B8" }}>{a}</span>
           </div>
         ))}
       </div>
@@ -846,55 +848,55 @@ function Card5Verdict({
   return (
     <CardShell title="Go / No-Go verdict" confidence={confidence} onEdit={onEdit}>
       <div
-        className="inline-flex items-center px-3 py-1.5 rounded-md self-start"
-        style={{ background: vc.bg }}
+        className="inline-flex items-center px-3 py-1.5 rounded-md self-start uppercase"
+        style={{ background: vc.bg, border: vc.border }}
       >
-        <span className="font-bold" style={{ fontSize: "18px", color: vc.color }}>
+        <span style={{ fontSize: "28px", fontWeight: 700, color: vc.pillColor }}>
           {data.verdict}
         </span>
       </div>
       <div className="flex flex-col gap-0.5">
-        <span style={{ fontSize: "11px", color: "#6B7280" }}>Viability score</span>
-        <span className="font-bold" style={{ fontSize: "24px", color: vc.color }}>
-          {data.viabilityScore}/9
+        <span className="uppercase" style={{ fontSize: "10px", fontWeight: 500, color: "#4A6080", letterSpacing: "0.06em" }}>Viability score</span>
+        <span style={{ fontSize: "36px", fontWeight: 700, color: vc.color }}>
+          {Math.round(pct)}<span style={{ fontSize: "16px", color: "#4A6080" }}>/100</span>
         </span>
       </div>
-      <div className="h-[5px] w-full rounded-full" style={{ background: "#122B1A" }}>
+      <div className="w-full rounded-full" style={{ height: "6px", background: "#1E2D4A" }}>
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: vc.barColor }} />
       </div>
       <div className="flex justify-between mt-1">
-        <span style={{ fontSize: "9px", color: "#6B7280" }}>Low Risk</span>
-        <span style={{ fontSize: "9px", color: "#6B7280" }}>High Risk</span>
+        <span style={{ fontSize: "9px", color: "#4A6080" }}>Low Risk</span>
+        <span style={{ fontSize: "9px", color: "#4A6080" }}>High Risk</span>
       </div>
       <div className="flex flex-col gap-1.5 mt-1">
-        <p className="uppercase tracking-wide font-semibold" style={{ fontSize: "10px", color: "#6B7280" }}>
+        <p className="uppercase tracking-wide" style={{ fontSize: "10px", fontWeight: 500, color: "#4A6080" }}>
           Why this verdict
         </p>
         {(data.topReasons ?? []).map((r, i) => (
           <div key={i} className="flex gap-1.5 items-start">
             <Dot color="#34D399" />
-            <span style={{ fontSize: "13px", lineHeight: "1.7", color: "#94A3B8" }}>{r}</span>
+            <span style={{ fontSize: "13px", fontWeight: 400, lineHeight: "1.75", color: "#94A3B8" }}>{r}</span>
           </div>
         ))}
       </div>
       <div className="flex flex-col gap-1.5 mt-1">
-        <p className="uppercase tracking-wide font-semibold" style={{ fontSize: "10px", color: "#6B7280" }}>
+        <p className="uppercase tracking-wide" style={{ fontSize: "10px", fontWeight: 500, color: "#4A6080" }}>
           Key risks
         </p>
         {(data.topRisks ?? []).map((r, i) => (
           <div key={i} className="flex gap-1.5 items-start">
             <Dot color="#F87171" />
-            <span style={{ fontSize: "13px", lineHeight: "1.7", color: "#94A3B8" }}>{r}</span>
+            <span style={{ fontSize: "13px", fontWeight: 400, lineHeight: "1.75", color: "#94A3B8" }}>{r}</span>
           </div>
         ))}
       </div>
       {data.nextAction && (
         <div
           className="rounded-md p-2 mt-1"
-          style={{ background: "#0A1A10", border: "0.5px solid #122B1A" }}
+          style={{ background: "#111827", border: "0.5px solid #122B1A" }}
         >
           <p className="font-bold mb-1" style={{ fontSize: "10px", color: "#34D399" }}>Next action</p>
-          <p style={{ fontSize: "13px", lineHeight: "1.7", color: "#94A3B8" }}>{data.nextAction}</p>
+          <p style={{ fontSize: "13px", fontWeight: 400, lineHeight: "1.75", color: "#94A3B8" }}>{data.nextAction}</p>
         </div>
       )}
     </CardShell>
@@ -1082,7 +1084,7 @@ export default function ReportPage() {
     return (
       <div
         className="flex items-center justify-center min-h-screen text-sm"
-        style={{ background: "#000000", color: "#6B7280" }}
+        style={{ background: "#060B18", color: "#6B7280" }}
       >
         Loading…
       </div>
@@ -1101,19 +1103,19 @@ export default function ReportPage() {
   return (
     <div
       className="flex h-screen overflow-hidden"
-      style={{ background: "#000000", fontFamily: "Inter, system-ui, sans-serif" }}
+      style={{ background: "#060B18", fontFamily: "Inter, system-ui, sans-serif" }}
     >
       {/* ── LEFT PANEL ──────────────────────────────────────────────────────── */}
       <aside
         className="flex flex-col shrink-0 border-r overflow-hidden"
-        style={{ width: 300, background: "#000000", borderColor: "#122B1A" }}
+        style={{ width: 300, background: "#060B18", borderColor: "#122B1A" }}
       >
         {/* Logo + idea */}
         <div className="px-3 pt-3 pb-2 border-b shrink-0" style={{ borderColor: "#122B1A" }}>
           <div className="flex items-center gap-2 mb-2">
             <div
               className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[10px] font-bold shrink-0"
-              style={{ background: "#059669" }}
+              style={{ background: "#10B981" }}
             >
               V
             </div>
@@ -1132,8 +1134,8 @@ export default function ReportPage() {
               onClick={() => setActiveTab(tab)}
               className="flex-1 py-2 text-[11px] font-medium transition-colors border-b-2"
               style={{
-                borderColor: activeTab === tab ? "#059669" : "transparent",
-                color: activeTab === tab ? "#059669" : "#6B7280",
+                borderColor: activeTab === tab ? "#10B981" : "transparent",
+                color: activeTab === tab ? "#10B981" : "#6B7280",
               }}
             >
               {tab === "profile" ? "Idea profile" : "Sources / Citations"}
@@ -1181,7 +1183,7 @@ export default function ReportPage() {
           <div className="flex items-center gap-1.5">
             <button
               onClick={handleRevalidate}
-              className="text-[10px] px-2.5 py-1 rounded-md border transition-colors hover:border-[#05966940]"
+              className="text-[10px] px-2.5 py-1 rounded-md border transition-colors hover:border-[#10B98140]"
               style={{ borderColor: "#122B1A", color: "#94A3B8" }}
             >
               Re-validate
@@ -1190,7 +1192,7 @@ export default function ReportPage() {
               onClick={handleDownloadPDF}
               disabled={pdfLoading}
               className="text-[10px] px-2.5 py-1 rounded-md font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-60"
-              style={{ background: "#059669" }}
+              style={{ background: "#10B981" }}
             >
               {pdfLoading ? "Generating…" : "Download PDF"}
             </button>
@@ -1234,6 +1236,8 @@ export default function ReportPage() {
             data={report.entryScore}
             confidence={report.confidence?.entryScore ?? "Medium"}
             onEdit={() => focusChatInput(CARD_EDIT_MESSAGES.entryScore)}
+            verdictColor={verdictColors(report.verdict.verdict).color}
+            verdictBarColor={verdictColors(report.verdict.verdict).barColor}
           />
           <Card5Verdict
             data={report.verdict}
