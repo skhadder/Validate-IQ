@@ -47,6 +47,17 @@ function getConfidenceLevel(citations: PerplexityCitation[] | undefined): string
   return "Low"
 }
 
+function stripCitations(value: unknown): unknown {
+  if (typeof value === "string") return value.replace(/\[\d+\]/g, "").trim()
+  if (Array.isArray(value)) return value.map(stripCitations)
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, stripCitations(v)])
+    )
+  }
+  return value
+}
+
 function extractJSON(raw: string): unknown {
   // Strip markdown fences
   let cleaned = raw
@@ -116,7 +127,7 @@ function parseSection(result: { data: PerplexityResponse | null; error: string |
   const citations = result.data.citations ?? []
 
   try {
-    const parsed = extractJSON(raw)
+    const parsed = stripCitations(extractJSON(raw))
     return { parsed, citations }
   } catch {
     return { parsed: { error: true, message: "Section unavailable" }, citations }
@@ -212,7 +223,7 @@ Return this exact JSON:
 ${founderCtx}
 Return this exact JSON:
 {
-  "entryScore": number,
+  "entryScore": number (0-10),
   "barrierLevel": "Low" | "Medium" | "High" | "Very High",
   "barriers": [string, string, string],
   "advantages": [string, string],
@@ -231,7 +242,7 @@ ${founderCtx}
 Return this exact JSON:
 {
   "verdict": "GO" | "CONDITIONAL GO" | "NO-GO",
-  "viabilityScore": number,
+  "viabilityScore": number (0-9),
   "topReasons": [string, string, string],
   "topRisks": [string, string, string],
   "nextAction": string

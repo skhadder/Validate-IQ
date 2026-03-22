@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -17,6 +18,7 @@ export function Navbar() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const navRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
 
   return (
     <motion.header
@@ -60,10 +62,10 @@ export function Navbar() {
 
         {/* CTA Buttons */}
         <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="text-[#6B7280] hover:text-white hover:bg-[#0A1A10]">
+          <Button variant="ghost" size="sm" onClick={() => router.push("/workspace")} className="text-[#6B7280] hover:text-white hover:bg-[#0A1A10]">
             Sign In
           </Button>
-          <Button size="sm" className="shimmer-btn bg-[#059669] text-[#000000] hover:bg-[#047857] rounded-full px-4">
+          <Button size="sm" onClick={() => router.push("/workspace")} className="shimmer-btn bg-[#059669] text-[#000000] hover:bg-[#047857] rounded-full px-4">
             Get Started
           </Button>
         </div>
@@ -98,10 +100,10 @@ export function Navbar() {
               </a>
             ))}
             <hr className="border-[#122B1A] my-2" />
-            <Button variant="ghost" className="justify-start text-[#6B7280] hover:text-white">
+            <Button variant="ghost" onClick={() => router.push("/workspace")} className="justify-start text-[#6B7280] hover:text-white">
               Sign In
             </Button>
-            <Button className="shimmer-btn bg-[#059669] text-[#000000] hover:bg-[#047857] rounded-full">Get Started</Button>
+            <Button onClick={() => router.push("/workspace")} className="shimmer-btn bg-[#059669] text-[#000000] hover:bg-[#047857] rounded-full">Get Started</Button>
           </div>
         </motion.div>
       )}

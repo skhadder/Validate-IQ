@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { LogoMark } from "@/components/logo-mark"
 import {
   BarChart2,
@@ -159,6 +160,8 @@ function Sidebar({
   onLoadReport: (r: SavedReport) => void
   reportsRef: React.RefObject<HTMLDivElement | null>
 }) {
+  const router = useRouter()
+
   function scrollToReports() {
     reportsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
@@ -296,6 +299,7 @@ function Sidebar({
             Unlimited validations, full reports, export to PDF.
           </p>
           <button
+            onClick={() => router.push("/#pricing")}
             className="w-full py-1.5 rounded-md text-xs font-medium text-white transition-all hover:brightness-110"
             style={{ background: "#059669" }}
           >
@@ -329,7 +333,7 @@ function TopBar({ isDemoMode, geography }: { isDemoMode: boolean; geography: str
     if (hasReport) {
       router.push("/report")
     } else {
-      alert("Run a validation first to export your report.")
+      toast.error("Run a validation first to view your report.")
     }
   }
 
@@ -384,7 +388,7 @@ function TopBar({ isDemoMode, geography }: { isDemoMode: boolean; geography: str
           style={{ borderColor: "#122B1A", color: "#6B7280", background: "transparent" }}
         >
           <FileText size={13} />
-          Export
+          View Report
         </button>
       </div>
     </div>
@@ -603,7 +607,10 @@ function EmptyState({
             color: "#6B7280",
           }}
         >
-          ⌘ Enter
+          {typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
+            ? "⌘"
+            : "Ctrl"}{" "}
+          Enter
         </kbd>{" "}
         to continue to survey
       </p>
@@ -760,15 +767,17 @@ export default function WorkspacePage() {
     }
   }, [])
 
-  function runStepAnimation(): Promise<void> {
+  function runStepAnimation(signal: { cancelled: boolean }): Promise<void> {
     return new Promise((resolve) => {
       setLoadingStep(0)
       const STEP_MS = 1500
       ;[1, 2, 3, 4, 5].forEach((step) => {
-        setTimeout(() => setLoadingStep(step), step * STEP_MS)
+        setTimeout(() => {
+          if (!signal.cancelled) setLoadingStep(step)
+        }, step * STEP_MS)
       })
       setTimeout(() => {
-        setLoadingStep(6)
+        if (!signal.cancelled) setLoadingStep(6)
         resolve()
       }, 6 * STEP_MS)
     })
@@ -779,7 +788,8 @@ export default function WorkspacePage() {
     setAppState("loading")
 
     if (isDemoMode) {
-      await runStepAnimation()
+      const demoSignal = { cancelled: false }
+      await runStepAnimation(demoSignal)
       localStorage.setItem("validateiq_report", JSON.stringify(demoData))
       localStorage.setItem("validateiq_idea", ideaText)
       localStorage.setItem("validateiq_survey", JSON.stringify(answers))
@@ -787,7 +797,8 @@ export default function WorkspacePage() {
       return
     }
 
-    const animationPromise = runStepAnimation()
+    const animSignal = { cancelled: false }
+    const animationPromise = runStepAnimation(animSignal)
     const minAnimationPromise = new Promise<void>((resolve) =>
       setTimeout(resolve, 4 * 1500)
     )
@@ -805,6 +816,7 @@ export default function WorkspacePage() {
       reportData = await res.json()
     } catch {
       apiError = true
+      animSignal.cancelled = true
     }
 
     if (apiError) {

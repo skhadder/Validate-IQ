@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Settings, ArrowUp } from "lucide-react"
+import { toast } from "sonner"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -84,6 +85,27 @@ interface ChatMessage {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function stripCitations(value: unknown): unknown {
+  if (typeof value === "string") return value.replace(/\[\d+\]/g, "").trim()
+  if (Array.isArray(value)) return value.map(stripCitations)
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, stripCitations(v)])
+    )
+  }
+  return value
+}
+
+function renderMarkdown(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i} style={{ color: "#ffffff" }}>{part.slice(2, -2)}</strong>
+    }
+    return part
+  })
+}
+
 function extractMarketValue(val: string): string {
   if (!val) return "—"
   const match = val.match(/\$[\d.,]+\s*[BMKTbmkt]+/)
@@ -96,6 +118,7 @@ function verdictColors(verdict: string) {
   if (verdict === "CONDITIONAL GO") return { color: "#FBBF24", bg: "#2A1E05", barColor: "#FBBF24" }
   return { color: "#F87171", bg: "#2A0A0A", barColor: "#F87171" }
 }
+
 
 // ─── Small shared components ──────────────────────────────────────────────────
 
@@ -142,8 +165,8 @@ function Dot({ color }: { color: string }) {
 
 function SummaryCard({ verdict, entryScore }: { verdict: ReportData["verdict"]; entryScore: ReportData["entryScore"] }) {
   const vc = verdictColors(verdict.verdict)
-  const viabilityPct = Math.min(100, Math.max(0, verdict.viabilityScore))
-  const entryPct = Math.min(100, Math.max(0, entryScore.entryScore))
+  const viabilityPct = Math.min(100, Math.max(0, (verdict.viabilityScore / 9) * 100))
+  const entryPct = Math.min(100, Math.max(0, (entryScore.entryScore / 10) * 100))
 
   return (
     <div
@@ -165,20 +188,28 @@ function SummaryCard({ verdict, entryScore }: { verdict: ReportData["verdict"]; 
         <div className="flex flex-col gap-1">
           <span className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: "#6B7280" }}>Viability Score</span>
           <span className="font-bold" style={{ fontSize: "36px", lineHeight: 1, color: vc.color }}>
-            {verdict.viabilityScore}
+            {verdict.viabilityScore}<span style={{ fontSize: "16px", color: "#6B7280" }}>/9</span>
           </span>
           <div className="h-1 w-24 rounded-full mt-1" style={{ background: "#122B1A" }}>
             <div className="h-full rounded-full" style={{ width: `${viabilityPct}%`, background: vc.barColor }} />
+          </div>
+          <div className="flex justify-between w-24">
+            <span style={{ fontSize: "8px", color: "#6B7280" }}>Low</span>
+            <span style={{ fontSize: "8px", color: "#6B7280" }}>High</span>
           </div>
         </div>
         {/* Entry Score */}
         <div className="flex flex-col gap-1">
           <span className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: "#6B7280" }}>Entry Score</span>
           <span className="font-bold" style={{ fontSize: "36px", lineHeight: 1, color: "#FBBF24" }}>
-            {entryScore.entryScore}
+            {entryScore.entryScore}<span style={{ fontSize: "16px", color: "#6B7280" }}>/10</span>
           </span>
           <div className="h-1 w-24 rounded-full mt-1" style={{ background: "#122B1A" }}>
             <div className="h-full rounded-full" style={{ width: `${entryPct}%`, background: "#FBBF24" }} />
+          </div>
+          <div className="flex justify-between w-24">
+            <span style={{ fontSize: "8px", color: "#6B7280" }}>Low</span>
+            <span style={{ fontSize: "8px", color: "#6B7280" }}>High</span>
           </div>
         </div>
       </div>
@@ -307,18 +338,26 @@ function SourcesTab({ report }: { report: ReportData }) {
         const truncatedUrl = s.url.length > 50 ? s.url.slice(0, 50) + "…" : s.url
         return (
           <div key={i} className="flex flex-col gap-0.5">
-            <span className="text-[11px] font-semibold text-white">{domain}</span>
+            <div className="flex items-center gap-1.5">
+              <span
+                className="text-[9px] font-bold rounded px-1 py-0.5 shrink-0"
+                style={{ background: "rgba(5,150,105,0.15)", color: "#34D399" }}
+              >
+                [{i + 1}]
+              </span>
+              <span className="text-[11px] font-semibold text-white">{domain}</span>
+            </div>
             <a
               href={s.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] hover:underline"
+              className="text-[10px] hover:underline pl-6"
               style={{ color: "#34D399" }}
             >
               {truncatedUrl}
             </a>
             <span
-              className="text-[9px] px-1.5 py-0.5 rounded self-start"
+              className="text-[9px] px-1.5 py-0.5 rounded self-start ml-6"
               style={{ background: "rgba(5,150,105,0.1)", color: "#34D399" }}
             >
               {s.section}
@@ -434,7 +473,7 @@ function Chatbot({
                 color: m.role === "bot" ? "#94A3B8" : "#CBD5E1",
               }}
             >
-              {m.content}
+              {m.role === "bot" ? renderMarkdown(m.content) : m.content}
             </div>
           </div>
         ))}
@@ -666,12 +705,12 @@ function Card4EntryScore({
   confidence: string
   onEdit: () => void
 }) {
-  const pct = Math.min(100, Math.max(0, data.entryScore))
+  const pct = Math.min(100, Math.max(0, (data.entryScore / 10) * 100))
   return (
     <CardShell title="Market entry score" confidence={confidence} onEdit={onEdit}>
       <div className="flex items-center gap-2">
         <span className="font-bold" style={{ fontSize: "32px", color: "#FBBF24" }}>
-          {data.entryScore}
+          {data.entryScore}/10
         </span>
         {data.barrierLevel && (
           <span
@@ -685,6 +724,10 @@ function Card4EntryScore({
       <p style={{ fontSize: "11px", color: "#6B7280" }}>Based on your founder profile</p>
       <div className="h-[5px] w-full rounded-full" style={{ background: "#122B1A" }}>
         <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: "#FBBF24" }} />
+      </div>
+      <div className="flex justify-between mt-1">
+        <span style={{ fontSize: "9px", color: "#6B7280" }}>Low Risk</span>
+        <span style={{ fontSize: "9px", color: "#6B7280" }}>High Risk</span>
       </div>
       <div className="flex flex-col gap-1.5 mt-1">
         <p className="uppercase tracking-wide font-semibold" style={{ fontSize: "10px", color: "#6B7280" }}>Barriers</p>
@@ -718,7 +761,7 @@ function Card5Verdict({
   onEdit: () => void
 }) {
   const vc = verdictColors(data.verdict)
-  const pct = Math.min(100, Math.max(0, data.viabilityScore))
+  const pct = Math.min(100, Math.max(0, (data.viabilityScore / 9) * 100))
 
   return (
     <CardShell title="Go / No-Go verdict" confidence={confidence} onEdit={onEdit}>
@@ -733,11 +776,15 @@ function Card5Verdict({
       <div className="flex flex-col gap-0.5">
         <span style={{ fontSize: "11px", color: "#6B7280" }}>Viability score</span>
         <span className="font-bold" style={{ fontSize: "24px", color: vc.color }}>
-          {data.viabilityScore}/100
+          {data.viabilityScore}/9
         </span>
       </div>
       <div className="h-[5px] w-full rounded-full" style={{ background: "#122B1A" }}>
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: vc.barColor }} />
+      </div>
+      <div className="flex justify-between mt-1">
+        <span style={{ fontSize: "9px", color: "#6B7280" }}>Low Risk</span>
+        <span style={{ fontSize: "9px", color: "#6B7280" }}>High Risk</span>
       </div>
       <div className="flex flex-col gap-1.5 mt-1">
         <p className="uppercase tracking-wide font-semibold" style={{ fontSize: "10px", color: "#6B7280" }}>
@@ -835,6 +882,7 @@ export default function ReportPage() {
   const [activeTab, setActiveTab] = useState<"profile" | "sources">("profile")
   const [chatInput, setChatInput] = useState("")
   const [pdfLoading, setPdfLoading] = useState(false)
+  const [reportDate, setReportDate] = useState<string>("")
 
   useEffect(() => {
     const raw = localStorage.getItem("validateiq_report")
@@ -848,26 +896,39 @@ export default function ReportPage() {
     }
 
     try {
-      const parsed = JSON.parse(raw) as ReportData
+      const parsed = stripCitations(JSON.parse(raw)) as ReportData
       const surveyParsed: Survey = surveyStr ? JSON.parse(surveyStr) : null
       setReport(parsed)
       setIdea(ideaStr)
       setSurvey(surveyParsed)
       setIsDemoMode(demo)
 
-      // Save to persistent saved reports
+      // Save to persistent saved reports (deduplicate by idea + calendar day)
       const existing = JSON.parse(localStorage.getItem("validateiq_saved_reports") || "[]")
-      const newEntry = {
-        id: Date.now().toString(),
-        idea: ideaStr,
-        date: new Date().toISOString(),
-        verdict: parsed.verdict?.verdict ?? "CONDITIONAL GO",
-        viabilityScore: parsed.verdict?.viabilityScore ?? 0,
-        report: parsed,
-        survey: surveyParsed,
+      const today = new Date().toISOString().slice(0, 10)
+      const alreadySaved = existing.some(
+        (r: { idea: string; date: string }) =>
+          r.idea === ideaStr && r.date.slice(0, 10) === today
+      )
+      if (!alreadySaved) {
+        const newEntry = {
+          id: Date.now().toString(),
+          idea: ideaStr,
+          date: new Date().toISOString(),
+          verdict: parsed.verdict?.verdict ?? "CONDITIONAL GO",
+          viabilityScore: parsed.verdict?.viabilityScore ?? 0,
+          report: parsed,
+          survey: surveyParsed,
+        }
+        const updated = [newEntry, ...existing].slice(0, 10)
+        localStorage.setItem("validateiq_saved_reports", JSON.stringify(updated))
+        setReportDate(newEntry.date)
+      } else {
+        const match = existing.find(
+          (r: { idea: string; date: string }) => r.idea === ideaStr
+        )
+        setReportDate(match?.date ?? new Date().toISOString())
       }
-      const updated = [newEntry, ...existing].slice(0, 10)
-      localStorage.setItem("validateiq_saved_reports", JSON.stringify(updated))
     } catch {
       router.replace("/workspace")
     }
@@ -892,6 +953,12 @@ export default function ReportPage() {
         backgroundColor: "#000000",
         scale: 2,
         useCORS: true,
+        logging: false,
+        onclone: (clonedDoc) => {
+          // Remove external stylesheets — all report styles are inline,
+          // so this prevents html2canvas from choking on Tailwind's lab/oklch colors
+          clonedDoc.querySelectorAll('link[rel="stylesheet"], style').forEach((el) => el.remove())
+        },
       })
 
       const imgData = canvas.toDataURL("image/png")
@@ -915,6 +982,8 @@ export default function ReportPage() {
 
       const slug = idea.split(" ").slice(0, 3).join("-").toLowerCase().replace(/[^a-z0-9-]/g, "")
       pdf.save(`ValidateIQ-${slug || "Report"}.pdf`)
+    } catch {
+      toast.error("Failed to generate PDF. Please try again.")
     } finally {
       setPdfLoading(false)
     }
@@ -1023,7 +1092,10 @@ export default function ReportPage() {
           <div className="flex flex-col gap-0.5">
             <span className="text-[12px] font-bold text-white">Validation report</span>
             <span className="text-[10px]" style={{ color: "#6B7280" }}>
-              Generated today · 6 sections · {survey.geography} market
+              {reportDate
+                ? `Generated ${new Date(reportDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+                : "Generated today"}{" "}
+              · 6 sections · {survey.geography} market
             </span>
           </div>
           <div className="flex items-center gap-1.5">

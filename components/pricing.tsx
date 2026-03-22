@@ -2,6 +2,7 @@
 
 import { motion, useInView } from "framer-motion"
 import { useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -65,6 +66,7 @@ export function Pricing() {
   const isInView = useInView(ref, { once: true, margin: "-100px" })
   const [billing, setBilling] = useState<Billing>("monthly")
   const [saveBounceKey, setSaveBounceKey] = useState(0)
+  const router = useRouter()
 
   return (
     <section
@@ -199,6 +201,7 @@ export function Pricing() {
 
                 {plan.ctaVariant === "indigo" ? (
                   <Button
+                    onClick={() => router.push("/workspace")}
                     className="h-11 w-full rounded-lg border-0 bg-[#059669] text-base font-medium text-white shadow-none transition-[box-shadow] duration-300 hover:bg-[#059669] hover:shadow-[0_0_24px_-4px_rgba(52,211,153,0.35)]"
                   >
                     {plan.cta}
@@ -206,6 +209,7 @@ export function Pricing() {
                 ) : (
                   <Button
                     variant="ghost"
+                    onClick={() => router.push("/workspace")}
                     className="h-11 w-full rounded-lg border border-[#122B1A] bg-transparent text-base font-medium text-[#6B7280] transition-colors hover:border-[#059669]/50 hover:bg-[rgba(5,150,105,0.06)] hover:text-[#FFFFFF]"
                   >
                     {plan.cta}

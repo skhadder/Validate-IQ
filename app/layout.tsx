@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Manrope, Inter, DM_Sans } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
+import { Toaster } from "sonner"
 import "./globals.css"
 
 const manrope = Manrope({
@@ -37,6 +38,7 @@ export default function RootLayout({
       <body className={`${manrope.variable} ${inter.variable} ${dmSans.variable} font-sans antialiased`}>
         <div className="noise-overlay" aria-hidden="true" />
         {children}
+        <Toaster theme="dark" position="top-right" />
         <Analytics />
       </body>
     </html>
