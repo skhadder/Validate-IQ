@@ -251,3 +251,38 @@
 .cta-input-breathe {
   animation: cta-input-breathe 2s ease-in-out infinite;
 }
+
+/* 
+  Print stylesheet for native PDF export. 
+  Native printing handles all CSS (flex gaps, grid, oklch) perfectly, bypassing html2canvas limitations.
+*/
+@media print {
+  .print-hide {
+    display: none !important;
+  }
+  
+  body, html {
+    background: #000000 !important;
+    height: auto !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Expand all scrollable areas so the entire report prints */
+  .h-screen, .overflow-hidden, .overflow-y-auto {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Prevent cards from page-breaking in the middle */
+  .rounded-lg {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  
+  /* Improve text legibility on print */
+  * {
+    text-shadow: none !important;
+  }
+}

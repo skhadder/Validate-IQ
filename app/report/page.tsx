@@ -251,13 +251,13 @@ function SummaryCard({ verdict, entryScore }: { verdict: ReportData["verdict"]; 
 
   return (
     <div
-      className="rounded-lg border flex flex-col gap-3"
-      style={{ background: "#1C1F26", borderColor: "#2A2D35", borderWidth: "0.5px", padding: "16px 18px" }}
+      className="rounded-lg border flex flex-col"
+      style={{ background: "#1C1F26", borderColor: "#2A2D35", borderWidth: "0.5px", padding: "16px 18px", marginBottom: "12px" }}
     >
-      <div className="flex items-start gap-6 flex-wrap">
+      <div className="flex items-start flex-wrap mb-3">
         {/* Verdict */}
-        <div className="flex flex-col gap-1">
-          <span className="uppercase" style={{ fontSize: "10px", fontWeight: 500, color: "#6B7280", letterSpacing: "0.06em" }}>Verdict</span>
+        <div className="flex flex-col mr-6 mb-4">
+          <span className="uppercase mb-1" style={{ fontSize: "10px", fontWeight: 500, color: "#6B7280", letterSpacing: "0.06em" }}>Verdict</span>
           <span
             className="px-3 py-1 rounded-md self-start uppercase tracking-wide"
             style={{ fontSize: "14px", fontWeight: 700, color: vc.color, background: vc.bg, border: vc.border }}
@@ -266,9 +266,9 @@ function SummaryCard({ verdict, entryScore }: { verdict: ReportData["verdict"]; 
           </span>
         </div>
         {/* Viability Score */}
-        <div className="flex flex-col gap-1">
-          <span className="uppercase" style={{ fontSize: "10px", fontWeight: 500, color: "#6B7280", letterSpacing: "0.06em" }}>Viability Score</span>
-          <span style={{ fontSize: "36px", fontWeight: 700, lineHeight: 1, color: vc.color }}>
+        <div className="flex flex-col mr-6 mb-4">
+          <span className="uppercase mb-1" style={{ fontSize: "10px", fontWeight: 500, color: "#6B7280", letterSpacing: "0.06em" }}>Viability Score</span>
+          <span className="mb-1" style={{ fontSize: "36px", fontWeight: 700, lineHeight: 1, color: vc.color, display: "block" }}>
             {viabilityScore}<span style={{ fontSize: "16px", fontWeight: 400, color: "#64748B" }}>/9</span>
           </span>
           <div className="w-24 rounded-full mt-1" style={{ height: "6px", background: "#2A2D35", borderRadius: "99px" }}>
@@ -280,9 +280,9 @@ function SummaryCard({ verdict, entryScore }: { verdict: ReportData["verdict"]; 
           </div>
         </div>
         {/* Entry Score */}
-        <div className="flex flex-col gap-1">
-          <span className="uppercase" style={{ fontSize: "10px", fontWeight: 500, color: "#6B7280", letterSpacing: "0.06em" }}>Entry Score</span>
-          <span style={{ fontSize: "36px", fontWeight: 700, lineHeight: 1, color: bc.color }}>
+        <div className="flex flex-col mb-4">
+          <span className="uppercase mb-1" style={{ fontSize: "10px", fontWeight: 500, color: "#6B7280", letterSpacing: "0.06em" }}>Entry Score</span>
+          <span className="mb-1" style={{ fontSize: "36px", fontWeight: 700, lineHeight: 1, color: bc.color, display: "block" }}>
             {entryScoreNum}<span style={{ fontSize: "16px", fontWeight: 400, color: "#64748B" }}>/10</span>
           </span>
           <div className="w-24 rounded-full mt-1" style={{ height: "6px", background: "#2A2D35", borderRadius: "99px" }}>
@@ -1089,43 +1089,78 @@ export default function ReportPage() {
     if (!rightPanelRef.current || pdfLoading) return
     setPdfLoading(true)
     try {
-      const { default: html2canvas } = await import("html2canvas")
+      // Use html-to-image which has flawless support for Flexbox gaps and Tailwind OKLCH colors via SVG foreignObject rendering
+      const { toPng } = await import("html-to-image")
       const { default: jsPDF } = await import("jspdf")
 
-      const canvas = await html2canvas(rightPanelRef.current, {
+      // Ensure the panel is at its actual rendering size before cloning (temporarily undo overflow so it doesn't crop)
+      const element = rightPanelRef.current
+      const originalOverflow = element.style.overflowY
+      const originalWidth = element.style.width
+      const originalMaxWidth = element.style.maxWidth
+      const originalPadding = element.style.padding
+
+      // Force a fixed "document" width so the layout isn't incredibly wide (which causes squishing on A4)
+      element.style.overflowY = "visible"
+      element.style.width = "800px"
+      element.style.maxWidth = "800px"
+      element.style.padding = "24px 32px" // Add more breathing room for print
+
+      // Give the browser DOM a tiny fraction of a second to reflow the flex grid at 800px
+      await new Promise((resolve) => setTimeout(resolve, 20))
+
+      const domWidth = element.scrollWidth
+      const domHeight = element.scrollHeight
+
+      // Generate a super crisp 2x scale PNG
+      const dataUrl = await toPng(element, {
         backgroundColor: "#000000",
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        onclone: (clonedDoc) => {
-          // Remove external stylesheets — all report styles are inline,
-          // so this prevents html2canvas from choking on Tailwind's lab/oklch colors
-          clonedDoc.querySelectorAll('link[rel="stylesheet"], style').forEach((el) => el.remove())
+        pixelRatio: 2, 
+        width: domWidth,
+        height: domHeight,
+        filter: (node) => {
+          // Exclude elements with print-hide class (like topbar buttons)
+          return !node.classList?.contains("print-hide")
         },
+        style: {
+          transform: "scale(1)", // reset any transforms
+          margin: "0",
+        }
       })
 
-      const imgData = canvas.toDataURL("image/png")
+      // Restore UI styles
+      element.style.overflowY = originalOverflow
+      element.style.width = originalWidth
+      element.style.maxWidth = originalMaxWidth
+      element.style.padding = originalPadding
+
+      // Now create the PDF using the locked mathematical dimensions
       const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: "a4" })
+      
       const pdfWidth = pdf.internal.pageSize.getWidth()
       const pdfHeight = pdf.internal.pageSize.getHeight()
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width
+
+      // Calculate the image's height in PDF pixels (maintaining exact aspect ratio of the 800px element)
+      const imgHeight = (domHeight * pdfWidth) / domWidth
 
       let heightLeft = imgHeight
       let position = 0
 
-      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight)
+      // Add the first page
+      pdf.addImage(dataUrl, "PNG", 0, position, pdfWidth, imgHeight)
       heightLeft -= pdfHeight
 
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight
+      // Loop for subsequent pages
+      while (heightLeft > 10) {
+        position -= pdfHeight
         pdf.addPage()
-        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight)
+        pdf.addImage(dataUrl, "PNG", 0, position, pdfWidth, imgHeight)
         heightLeft -= pdfHeight
       }
 
       const slug = idea.split(" ").slice(0, 3).join("-").toLowerCase().replace(/[^a-z0-9-]/g, "")
       pdf.save(`Verdict-${slug || "Report"}.pdf`)
-    } catch {
+    } catch (err) {
       toast.error("Failed to generate PDF. Please try again.")
     } finally {
       setPdfLoading(false)
@@ -1193,7 +1228,7 @@ export default function ReportPage() {
     >
       {/* ── LEFT PANEL ──────────────────────────────────────────────────────── */}
       <aside
-        className="flex flex-col shrink-0 border-r overflow-hidden"
+        className="flex flex-col shrink-0 border-r overflow-hidden print-hide"
         style={{ width: 300, background: "#000000", borderColor: "#2A2D35" }}
       >
         {/* Logo + idea */}
@@ -1266,7 +1301,7 @@ export default function ReportPage() {
         )}
         {/* Topbar */}
         <div
-          className="flex items-center justify-between px-4 py-2.5 border-b shrink-0"
+          className="flex items-center justify-between px-4 py-2.5 border-b shrink-0 print-hide"
           style={{ borderColor: "#2A2D35", minHeight: 44 }}
         >
           <div className="flex flex-col gap-0.5">

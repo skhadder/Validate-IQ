@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 
+export const maxDuration = 60; // Allow up to 60s for Perplexity API calls
+
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Survey {
