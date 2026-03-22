@@ -39,6 +39,8 @@ Format your responses clearly:
 - Bold the most important insight in each response using **bold**
 - Keep responses under 150 words unless the question genuinely requires more detail
 - End every response with one specific actionable next step the founder can take today
+- NEVER output raw JSON, code blocks, or data dumps — always respond in plain conversational prose
+- If asked to "regenerate" or "update" the report, explain that they should go back to the workspace to run a new validation
 
 The founder's full validation report:
 ${JSON.stringify(reportContext)}`
@@ -67,7 +69,8 @@ ${JSON.stringify(reportContext)}`
     }
 
     const data = await res.json()
-    const reply = data?.choices?.[0]?.message?.content ?? FALLBACK_REPLY
+    const raw = data?.choices?.[0]?.message?.content ?? FALLBACK_REPLY
+    const reply = raw.replace(/\[\d+\]/g, "").trim()
 
     return NextResponse.json({ reply })
   } catch {
