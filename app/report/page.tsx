@@ -186,7 +186,7 @@ function EditButton({ onClick }: { onClick?: () => void }) {
     <button
       onClick={onClick}
       className="rounded-full border transition-colors"
-      style={{ fontSize: "10px", color: "#60A5FA", borderColor: "#1E3A5F", background: "transparent", padding: "3px 10px" }}
+      style={{ fontSize: "10px", color: "#4A6080", borderColor: "#1E2D4A", background: "transparent", padding: "3px 10px" }}
     >
       Edit
     </button>
@@ -214,15 +214,15 @@ function SummaryCard({ verdict, entryScore }: { verdict: ReportData["verdict"]; 
   return (
     <div
       className="rounded-lg border flex flex-col gap-3"
-      style={{ background: "#0D1526", borderColor: "#122B1A", borderWidth: "0.5px", padding: "16px 18px" }}
+      style={{ background: "#0D1526", borderColor: "#1E2D4A", borderWidth: "0.5px", padding: "16px 18px" }}
     >
       <div className="flex items-start gap-6 flex-wrap">
         {/* Verdict */}
         <div className="flex flex-col gap-1">
           <span className="uppercase" style={{ fontSize: "10px", fontWeight: 500, color: "#4A6080", letterSpacing: "0.06em" }}>Verdict</span>
           <span
-            className="px-3 py-1 rounded-md self-start uppercase"
-            style={{ fontSize: "28px", fontWeight: 700, color: vc.pillColor, background: vc.bg, border: vc.border }}
+            className="px-3 py-1 rounded-md self-start uppercase tracking-wide"
+            style={{ fontSize: "14px", fontWeight: 700, color: vc.pillColor, background: vc.bg, border: vc.border }}
           >
             {verdict.verdict}
           </span>
@@ -259,8 +259,8 @@ function SummaryCard({ verdict, entryScore }: { verdict: ReportData["verdict"]; 
       {verdict.nextAction && (
         <>
           <div className="h-px w-full" style={{ background: "#1E2D4A" }} />
-          <p style={{ fontSize: "13px", lineHeight: "1.75", color: "#ffffff" }}>
-            <span style={{ color: "#4A6080", fontWeight: 500 }}>Next: </span>
+          <p className="line-clamp-2" style={{ fontSize: "12px", lineHeight: "1.65", color: "#94A3B8" }}>
+            <span style={{ color: "#10B981", fontWeight: 600 }}>→ Next: </span>
             {verdict.nextAction}
           </p>
         </>
@@ -297,7 +297,7 @@ function IdeaProfileTab({
           <div
             key={key}
             className="flex items-center justify-between rounded-md px-2 py-1.5 border"
-            style={{ background: "#0D1526", borderColor: "#122B1A" }}
+            style={{ background: "#0D1526", borderColor: "#1E2D4A" }}
           >
             <span className="shrink-0 mr-2" style={{ fontSize: "11px", color: "#64748B" }}>
               {label}
@@ -493,12 +493,12 @@ function Chatbot({
   }
 
   return (
-    <div className="border-t flex flex-col gap-2" style={{ borderColor: "#122B1A" }}>
+    <div className="border-t flex flex-col gap-2" style={{ borderColor: "#1E2D4A" }}>
       {/* Drag handle */}
       <div
         onMouseDown={onDragStart}
         className="flex flex-col items-center justify-center gap-1 py-2 cursor-ns-resize select-none hover:bg-[#0A1A10] transition-colors"
-        style={{ borderBottom: "1px solid #1E3A28" }}
+        style={{ borderBottom: "1px solid #1E2D4A" }}
         title="Drag to resize"
       >
         <div className="w-8 h-[3px] rounded-full" style={{ background: "#3D6A4E" }} />
@@ -516,8 +516,8 @@ function Chatbot({
             <button
               key={s}
               onClick={() => sendMessage(s)}
-              className="px-2 py-0.5 rounded-full border transition-colors hover:bg-[#0A1A10]"
-              style={{ fontSize: "11px", borderColor: "#122B1A", color: "#34D399" }}
+              className="px-2 py-0.5 rounded-full border transition-colors hover:border-[#10B981] hover:text-white"
+              style={{ fontSize: "11px", borderColor: "#1E2D4A", color: "#4A6080", background: "transparent" }}
             >
               {s}
             </button>
@@ -546,7 +546,7 @@ function Chatbot({
                   fontSize: "12px",
                   lineHeight: "1.75",
                   background: m.role === "bot" ? "#0D1526" : "#111827",
-                  borderColor: "#122B1A",
+                  borderColor: "#1E2D4A",
                   color: m.role === "bot" ? "#94A3B8" : "#CBD5E1",
                 }}
               >
@@ -564,7 +564,7 @@ function Chatbot({
               </div>
               <div
                 className="px-2 py-1.5 rounded-md border"
-                style={{ fontSize: "12px", background: "#0A1A10", borderColor: "#122B1A", color: "#6B7280" }}
+                style={{ fontSize: "12px", background: "#0A1A10", borderColor: "#1E2D4A", color: "#6B7280" }}
               >
                 Thinking…
               </div>
@@ -586,7 +586,7 @@ function Chatbot({
             style={{
               fontSize: "13px",
               background: "#0A1A10",
-              borderColor: "#122B1A",
+              borderColor: "#1E2D4A",
               color: "#94A3B8",
             }}
           />
@@ -621,7 +621,7 @@ function CardShell({
       className="rounded-lg border flex flex-col gap-3"
       style={{
         background: "#0D1526",
-        borderColor: "#122B1A",
+        borderColor: "#1E2D4A",
         borderWidth: "0.5px",
         padding: "16px 18px",
       }}
@@ -649,7 +649,7 @@ function Card1Snapshot({
 }) {
   return (
     <CardShell title="Idea snapshot" confidence={confidence} onEdit={onEdit}>
-      <p className="text-white" style={{ fontSize: "15px", fontWeight: 600, lineHeight: "1.75" }}>
+      <p style={{ fontSize: "14px", fontWeight: 400, lineHeight: "1.75", color: "#CBD5E1" }}>
         {data.oneLiner}
       </p>
       <div className="flex flex-col gap-2">
@@ -740,12 +740,12 @@ function Card3Competitors({
 }) {
   return (
     <CardShell title="Competitor intel" confidence={confidence} onEdit={onEdit}>
-      <div className="flex flex-col divide-y" style={{ borderColor: "#122B1A" }}>
+      <div className="flex flex-col divide-y" style={{ borderColor: "#1E2D4A" }}>
         {(data.competitors ?? []).map((c, i) => (
           <div
             key={i}
             className="flex items-start justify-between py-1.5 first:pt-0 last:pb-0"
-            style={{ borderColor: "#122B1A" }}
+            style={{ borderColor: "#1E2D4A" }}
           >
             <div className="flex flex-col gap-0.5 min-w-0">
               <span className="text-white" style={{ fontSize: "14px", fontWeight: 600 }}>
@@ -760,7 +760,7 @@ function Card3Competitors({
       </div>
       <div
         className="rounded-md p-2 mt-1"
-        style={{ background: "#111827", border: "0.5px solid #122B1A" }}
+        style={{ background: "#111827", border: "0.5px solid #1E2D4A" }}
       >
         <p className="font-bold mb-1" style={{ fontSize: "10px", color: "#34D399" }}>
           Gap identified
@@ -848,10 +848,10 @@ function Card5Verdict({
   return (
     <CardShell title="Go / No-Go verdict" confidence={confidence} onEdit={onEdit}>
       <div
-        className="inline-flex items-center px-3 py-1.5 rounded-md self-start uppercase"
+        className="inline-flex items-center px-3 py-1 rounded-md self-start uppercase tracking-wide"
         style={{ background: vc.bg, border: vc.border }}
       >
-        <span style={{ fontSize: "28px", fontWeight: 700, color: vc.pillColor }}>
+        <span style={{ fontSize: "14px", fontWeight: 700, color: vc.pillColor }}>
           {data.verdict}
         </span>
       </div>
@@ -893,7 +893,7 @@ function Card5Verdict({
       {data.nextAction && (
         <div
           className="rounded-md p-2 mt-1"
-          style={{ background: "#111827", border: "0.5px solid #122B1A" }}
+          style={{ background: "#111827", border: "0.5px solid #1E2D4A" }}
         >
           <p className="font-bold mb-1" style={{ fontSize: "10px", color: "#34D399" }}>Next action</p>
           <p style={{ fontSize: "13px", fontWeight: 400, lineHeight: "1.75", color: "#94A3B8" }}>{data.nextAction}</p>
@@ -1108,10 +1108,10 @@ export default function ReportPage() {
       {/* ── LEFT PANEL ──────────────────────────────────────────────────────── */}
       <aside
         className="flex flex-col shrink-0 border-r overflow-hidden"
-        style={{ width: 300, background: "#060B18", borderColor: "#122B1A" }}
+        style={{ width: 300, background: "#030712", borderColor: "#1E2D4A" }}
       >
         {/* Logo + idea */}
-        <div className="px-3 pt-3 pb-2 border-b shrink-0" style={{ borderColor: "#122B1A" }}>
+        <div className="px-3 pt-3 pb-2 border-b shrink-0" style={{ borderColor: "#1E2D4A" }}>
           <div className="flex items-center gap-2 mb-2">
             <div
               className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[10px] font-bold shrink-0"
@@ -1127,15 +1127,15 @@ export default function ReportPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b shrink-0" style={{ borderColor: "#122B1A" }}>
+        <div className="flex border-b shrink-0" style={{ borderColor: "#1E2D4A" }}>
           {(["profile", "sources"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className="flex-1 py-2 text-[11px] font-medium transition-colors border-b-2"
+              className="flex-1 py-2 text-[11px] font-medium transition-colors border-b-[3px]"
               style={{
                 borderColor: activeTab === tab ? "#10B981" : "transparent",
-                color: activeTab === tab ? "#10B981" : "#6B7280",
+                color: activeTab === tab ? "#ffffff" : "#4A6080",
               }}
             >
               {tab === "profile" ? "Idea profile" : "Sources / Citations"}
@@ -1169,7 +1169,7 @@ export default function ReportPage() {
         {/* Topbar */}
         <div
           className="flex items-center justify-between px-4 py-2.5 border-b shrink-0"
-          style={{ borderColor: "#122B1A", minHeight: 44 }}
+          style={{ borderColor: "#1E2D4A", minHeight: 44 }}
         >
           <div className="flex flex-col gap-0.5">
             <span className="text-[12px] font-bold text-white">Validation report</span>
@@ -1184,7 +1184,7 @@ export default function ReportPage() {
             <button
               onClick={handleRevalidate}
               className="text-[10px] px-2.5 py-1 rounded-md border transition-colors hover:border-[#10B98140]"
-              style={{ borderColor: "#122B1A", color: "#94A3B8" }}
+              style={{ borderColor: "#1E2D4A", color: "#94A3B8" }}
             >
               Re-validate
             </button>
@@ -1208,7 +1208,7 @@ export default function ReportPage() {
           {isDemoMode && (
             <div
               className="text-[10px] px-3 py-1.5 rounded-md border"
-              style={{ background: "#0A1A10", borderColor: "#122B1A", color: "#34D399", borderWidth: "0.5px" }}
+              style={{ background: "#0A1A10", borderColor: "#1E2D4A", color: "#34D399", borderWidth: "0.5px" }}
             >
               Demo mode — results are pre-loaded for speed
             </div>
