@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowUp } from "lucide-react"
+import { ArrowUp, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1234,6 +1234,14 @@ export default function ReportPage() {
         {/* Logo + idea */}
         <div className="px-3 pt-3 pb-2 border-b shrink-0" style={{ borderColor: "#2A2D35" }}>
           <div className="flex items-center gap-2 mb-2">
+            <button
+              onClick={() => router.push("/workspace")}
+              className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition-colors hover:bg-white/10"
+              style={{ color: "#9CA3AF" }}
+              title="Back to Workspace"
+            >
+              <ArrowLeft size={16} />
+            </button>
             <div
               className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[10px] font-bold shrink-0"
               style={{ background: "#10B981" }}

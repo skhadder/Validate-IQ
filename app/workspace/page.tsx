@@ -12,6 +12,7 @@ import {
   ArrowUp,
   Plus,
   BookOpen,
+  ArrowLeft,
 } from "lucide-react"
 import demoData from "@/lib/demo-data.json"
 
@@ -556,12 +557,11 @@ function SurveyScreen({
       {/* Back link */}
       <button
         onClick={onBack}
-        className="self-start text-sm mb-8 transition-colors"
-        style={{ color: "#6B7280", background: "transparent", border: "none" }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = "#ffffff" }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = "#6B7280" }}
+        className="flex items-center justify-center w-8 h-8 rounded-md self-start mb-6 transition-colors hover:bg-white/10"
+        style={{ color: "#9CA3AF" }}
+        title="Back"
       >
-        ← Back
+        <ArrowLeft size={18} />
       </button>
 
       {/* Heading */}
