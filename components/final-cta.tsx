@@ -54,7 +54,7 @@ export function FinalCTA() {
 
       <footer className="relative z-10 mt-20 border-t border-[#122B1A] px-4 py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 text-sm sm:flex-row sm:gap-4">
-          <span className="font-semibold text-white">Validate IQ</span>
+          <span className="font-semibold text-white">Verdict</span>
           <nav className="flex flex-wrap items-center justify-center gap-6">
             <a href="#" className="text-[#6B7280] transition-colors hover:text-white">
               Privacy
@@ -66,7 +66,7 @@ export function FinalCTA() {
               Twitter
             </a>
           </nav>
-          <p className="text-center text-[#6B7280] sm:text-right">© 2026 Validate IQ. Built for builders.</p>
+          <p className="text-center text-[#6B7280] sm:text-right">© 2026 Verdict. Built for builders.</p>
         </div>
       </footer>
     </section>

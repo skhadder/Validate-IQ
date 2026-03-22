@@ -32,7 +32,7 @@ export function Navbar() {
         {/* Logo */}
         <a href="#" className="flex items-center gap-2">
           <LogoMark />
-          <span className="font-semibold text-white hidden sm:block">Validate IQ</span>
+          <span className="font-semibold text-white hidden sm:block">Verdict</span>
         </a>
 
         {/* Desktop Nav Items */}

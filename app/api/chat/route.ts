@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ reply: FALLBACK_REPLY })
     }
 
-    const systemPrompt = `You are ValidateIQ, a sharp startup advisor. The founder's validation report is attached below.
+    const systemPrompt = `You are Verdict, a sharp startup advisor. The founder's validation report is attached below.
 
 STRICT OUTPUT FORMAT — follow this exactly, every time:
 

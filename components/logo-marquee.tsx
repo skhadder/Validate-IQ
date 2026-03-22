@@ -18,7 +18,7 @@ const testimonials = [
     attribution: "Arjun S., Hackathon Winner @ HackMIT",
   },
   {
-    quote: "I was about to build the wrong thing. Validate IQ told me in 60 seconds.",
+    quote: "I was about to build the wrong thing. Verdict told me in 60 seconds.",
     attribution: "Priya K., Solo Founder",
   },
   {

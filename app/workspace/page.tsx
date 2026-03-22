@@ -135,7 +135,6 @@ function Sidebar({
   onLoadReport: (r: SavedReport) => void
   reportsRef: React.RefObject<HTMLDivElement | null>
 }) {
-  const router = useRouter()
 
   function scrollToReports() {
     reportsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
@@ -163,7 +162,7 @@ function Sidebar({
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-5 border-b" style={{ borderColor: "#122B1A" }}>
         <LogoMark />
-        <span className="font-semibold text-white text-base tracking-tight">Validate IQ</span>
+        <span className="font-semibold text-white text-base tracking-tight">Verdict</span>
       </div>
 
       {/* New Validation */}
@@ -222,7 +221,9 @@ function Sidebar({
                 No validations yet. Run your first one above.
               </p>
             ) : (
-              savedReports.slice(0, 3).map((r) => (
+              savedReports
+                .filter((r, i, arr) => arr.findIndex(x => x.idea === r.idea) === i)
+                .slice(0, 5).map((r) => (
                 <button
                   key={r.id}
                   onClick={() => onLoadReport(r)}
@@ -254,8 +255,8 @@ function Sidebar({
         </div>
       </div>
 
-      {/* User + Upgrade */}
-      <div className="px-4 py-4 border-t space-y-3" style={{ borderColor: "#122B1A" }}>
+      {/* User */}
+      <div className="px-4 py-4 border-t" style={{ borderColor: "#122B1A" }}>
         <div className="flex items-center gap-3">
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm shrink-0"
@@ -267,19 +268,6 @@ function Sidebar({
             <p className="text-sm font-medium text-white truncate">Founder</p>
             <p className="text-xs truncate" style={{ color: "#6B7280" }}>Free plan</p>
           </div>
-        </div>
-        <div className="rounded-lg p-3 border" style={{ background: "#000000", borderColor: "#122B1A" }}>
-          <p className="text-xs font-medium text-white mb-1">Unlock Builder</p>
-          <p className="text-xs mb-3" style={{ color: "#6B7280" }}>
-            Unlimited validations, full reports, export to PDF.
-          </p>
-          <button
-            onClick={() => router.push("/#pricing")}
-            className="w-full py-1.5 rounded-md text-xs font-medium text-white transition-all hover:brightness-110"
-            style={{ background: "#059669" }}
-          >
-            Get Builder →
-          </button>
         </div>
       </div>
     </aside>
@@ -318,7 +306,7 @@ function TopBar({ isDemoMode, geography }: { isDemoMode: boolean; geography: str
       style={{ borderColor: "#122B1A" }}
     >
       <div className="flex min-w-0 items-center gap-2">
-        <span className="text-xs text-[#6B7280]">Validate IQ</span>
+        <span className="text-xs text-[#6B7280]">Verdict</span>
         <span className="text-xs text-[#6B7280]" aria-hidden>/</span>
         <span className="text-sm font-medium text-white">Workspace</span>
       </div>
@@ -553,13 +541,11 @@ function EmptyState({
 // ─── Survey Screen ────────────────────────────────────────────────────────────
 
 function SurveyScreen({
-  idea,
   answers,
   onChange,
   onSubmit,
   onBack,
 }: {
-  idea: string
   answers: SurveyAnswers
   onChange: (key: keyof SurveyAnswers, value: string) => void
   onSubmit: () => void
@@ -797,7 +783,6 @@ export default function WorkspacePage() {
         )}
         {appState === "survey" && (
           <SurveyScreen
-            idea={idea}
             answers={surveyAnswers}
             onChange={(key, value) => setSurveyAnswers((prev) => ({ ...prev, [key]: value }))}
             onSubmit={handleSurveySubmit}

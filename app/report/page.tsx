@@ -507,7 +507,7 @@ function Chatbot({
 
       <div className="flex flex-col gap-2 px-3 pb-3">
         <p className="uppercase" style={{ fontSize: "10px", fontWeight: 500, color: "#4A6080", letterSpacing: "0.06em" }}>
-          Ask ValidateIQ
+          Ask Verdict
         </p>
 
         {/* Suggestion pills */}
@@ -1063,7 +1063,7 @@ export default function ReportPage() {
       }
 
       const slug = idea.split(" ").slice(0, 3).join("-").toLowerCase().replace(/[^a-z0-9-]/g, "")
-      pdf.save(`ValidateIQ-${slug || "Report"}.pdf`)
+      pdf.save(`Verdict-${slug || "Report"}.pdf`)
     } catch {
       toast.error("Failed to generate PDF. Please try again.")
     } finally {
@@ -1119,7 +1119,7 @@ export default function ReportPage() {
             >
               V
             </div>
-            <span className="text-[13px] font-semibold text-white">ValidateIQ</span>
+            <span className="text-[13px] font-semibold text-white">Verdict</span>
           </div>
           <p className="text-[11px] leading-relaxed line-clamp-2" style={{ color: "#94A3B8" }}>
             {idea}
