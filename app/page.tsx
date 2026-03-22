@@ -4,6 +4,7 @@ import { Hero } from "@/components/hero"
 import { BentoGrid } from "@/components/bento-grid"
 import { TrustSection } from "@/components/trust-section"
 import { Pricing } from "@/components/pricing"
+import { FAQSection } from "@/components/faq-section"
 import { FinalCTA } from "@/components/final-cta"
 
 export default function Home() {
@@ -15,6 +16,7 @@ export default function Home() {
         <BentoGrid />
         <Pricing />
         <TrustSection />
+        <FAQSection />
         <FinalCTA />
       </main>
     </SmoothScroll>

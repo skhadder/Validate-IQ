@@ -435,15 +435,12 @@ function EmptyState({
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const remaining = MAX_CHARS - idea.length
-  const [isMac, setIsMac] = useState(false)
-
   useEffect(() => {
     textareaRef.current?.focus()
-    setIsMac(/Mac|iPhone|iPad|iPod/.test(navigator.userAgent))
   }, [])
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       if (idea.trim()) onSubmit()
     }
@@ -512,7 +509,6 @@ function EmptyState({
             color: "#6B7280",
           }}
         >
-          {isMac ? "⌘" : "Ctrl"}{" "}
           Enter
         </kbd>{" "}
         to continue to survey
