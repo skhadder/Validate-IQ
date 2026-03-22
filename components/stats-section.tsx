@@ -84,9 +84,9 @@ function StatCard({
 }) {
   const n = useCountUp(config.target, 1200, enabled)
   return (
-    <div className="rounded-xl bg-[#111116] p-6 text-center">
+    <div className="rounded-xl bg-[#0A1A10] p-6 text-center">
       <p className="text-5xl font-bold tabular-nums tracking-tight text-white">{config.format(n)}</p>
-      <p className="mt-3 text-sm leading-snug text-[#a1a1aa]">{label}</p>
+      <p className="mt-3 text-sm leading-snug text-[#6B7280]">{label}</p>
     </div>
   )
 }
@@ -116,7 +116,7 @@ export function StatsSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative overflow-hidden bg-[#0d0d12] py-20 [font-family:var(--font-inter),system-ui,sans-serif]"
+      className="relative overflow-hidden bg-[#050F09] py-20 [font-family:var(--font-inter),system-ui,sans-serif]"
     >
       {/* Thin scan line — sweeps left → right once on scroll-in */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
@@ -139,7 +139,7 @@ export function StatsSection() {
           ))}
         </div>
 
-        <p className="mt-10 text-center text-xs text-[#52525b]">
+        <p className="mt-10 text-center text-xs text-[#6B7280]">
           *Based on survey of 500 users, November 2024
         </p>
       </div>

@@ -22,7 +22,7 @@ const dmSans = DM_Sans({
 })
 
 export const metadata: Metadata = {
-  title: "ValidateIQ - Stop Guessing, Start Validating",
+  title: "Validate IQ - Stop Guessing, Start Validating",
   description: "Stop guessing. Start Validating. The modern platform for teams who validate ideas and make data-driven decisions.",
     generator: 'v0.app'
 }

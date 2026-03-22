@@ -11,11 +11,11 @@ export function FinalCTA() {
   return (
     <section
       ref={ref}
-      className="relative overflow-hidden bg-[#0a0a0f] px-4 pb-0 pt-24 [font-family:var(--font-inter),system-ui,sans-serif]"
+      className="relative overflow-hidden bg-[#000000] px-4 pb-0 pt-24 [font-family:var(--font-inter),system-ui,sans-serif]"
     >
       {/* Stage spotlight */}
       <div
-        className="pointer-events-none absolute left-1/2 top-[38%] h-[min(55vh,520px)] w-[min(120%,900px)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.12)_0%,transparent_60%)]"
+        className="pointer-events-none absolute left-1/2 top-[38%] h-[min(55vh,520px)] w-[min(120%,900px)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(5,150,105,0.1)_0%,transparent_60%)]"
         aria-hidden
       />
 
@@ -28,7 +28,7 @@ export function FinalCTA() {
         <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">
           Your next idea deserves a real answer.
         </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-[#a1a1aa] sm:text-lg">
+        <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-[#6B7280] sm:text-lg">
           Not a Reddit thread. Not a Google rabbit hole. A structured, data-backed validation — in the time it takes to
           make coffee.
         </p>
@@ -39,42 +39,42 @@ export function FinalCTA() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="cta-input-breathe flex flex-col gap-2 rounded-xl border border-[rgba(255,255,255,0.1)] bg-[#1a1a24] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] focus-within:border-[#6366f1] focus-within:ring-2 focus-within:ring-[#6366f1]/25 sm:flex-row sm:items-stretch sm:gap-0 sm:p-1">
+          <div className="cta-input-breathe flex flex-col gap-2 rounded-xl border border-[#122B1A] bg-[#0A1A10] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] focus-within:border-[#059669] focus-within:ring-2 focus-within:ring-[#059669]/25 sm:flex-row sm:items-stretch sm:gap-0 sm:p-1">
             <input
               type="text"
               placeholder="Describe your startup idea..."
-              className="min-h-12 min-w-0 flex-1 rounded-lg border-0 bg-transparent px-4 py-3 text-base text-[#e4e4e7] outline-none placeholder:text-[#71717a] sm:rounded-l-lg sm:rounded-r-none sm:py-2"
+              className="min-h-12 min-w-0 flex-1 rounded-lg border-0 bg-transparent px-4 py-3 text-base text-[#FFFFFF] outline-none placeholder:text-[#6B7280] sm:rounded-l-lg sm:rounded-r-none sm:py-2"
               aria-label="Describe your startup idea"
             />
             <Button
               type="button"
-              className="h-12 shrink-0 rounded-lg border-0 bg-[#6366f1] px-5 text-base font-medium text-white shadow-none transition-[box-shadow] duration-300 hover:bg-[#6366f1] hover:shadow-[0_0_24px_-4px_rgba(167,139,250,0.45)] sm:h-auto sm:rounded-l-none sm:rounded-r-lg"
+              className="h-12 shrink-0 rounded-lg border-0 bg-[#059669] px-5 text-base font-medium text-white shadow-none transition-[box-shadow] duration-300 hover:bg-[#059669] hover:shadow-[0_0_24px_-4px_rgba(52,211,153,0.35)] sm:h-auto sm:rounded-l-none sm:rounded-r-lg"
             >
               Validate Now →
             </Button>
           </div>
         </motion.div>
 
-        <p className="mx-auto mt-8 max-w-xl text-center text-sm text-[#71717a]">
+        <p className="mx-auto mt-8 max-w-xl text-center text-sm text-[#6B7280]">
           Used by founders at 40+ universities  •  Real data, not hallucinations  -  60-second results, guaranteed
         </p>
       </motion.div>
 
-      <footer className="relative z-10 mt-20 border-t border-[rgba(255,255,255,0.06)] px-4 py-8">
+      <footer className="relative z-10 mt-20 border-t border-[#122B1A] px-4 py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 text-sm sm:flex-row sm:gap-4">
-          <span className="font-semibold text-white">ValidateIQ</span>
+          <span className="font-semibold text-white">Validate IQ</span>
           <nav className="flex flex-wrap items-center justify-center gap-6">
-            <a href="#" className="text-[#71717a] transition-colors hover:text-white">
+            <a href="#" className="text-[#6B7280] transition-colors hover:text-white">
               Privacy
             </a>
-            <a href="#" className="text-[#71717a] transition-colors hover:text-white">
+            <a href="#" className="text-[#6B7280] transition-colors hover:text-white">
               Terms
             </a>
-            <a href="#" className="text-[#71717a] transition-colors hover:text-white">
+            <a href="#" className="text-[#6B7280] transition-colors hover:text-white">
               Twitter
             </a>
           </nav>
-          <p className="text-center text-[#52525b] sm:text-right">© 2026 ValidateIQ. Built for builders.</p>
+          <p className="text-center text-[#6B7280] sm:text-right">© 2026 Validate IQ. Built for builders.</p>
         </div>
       </footer>
     </section>

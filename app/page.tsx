@@ -11,7 +11,7 @@ import { FinalCTA } from "@/components/final-cta"
 export default function Home() {
   return (
     <SmoothScroll>
-      <main className="min-h-screen bg-zinc-950">
+      <main className="min-h-screen bg-[#000000]">
         <Navbar />
         <Hero />
         <LogoMarquee />

@@ -27,11 +27,11 @@ const itemVariants = {
 }
 
 const cardBase =
-  "group rounded-xl border border-[rgba(255,255,255,0.07)] bg-[#111116] p-6 transition-[transform,border-color] duration-200 ease-out hover:-translate-y-1 hover:border-[rgba(99,102,241,0.4)]"
+  "group rounded-xl border border-[#122B1A] bg-[#0A1A10] p-6 transition-[transform,border-color] duration-200 ease-out hover:-translate-y-1 hover:border-[#059669]/60"
 
 function IconBox({ children }: { children: ReactNode }) {
   return (
-    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg border border-[rgba(255,255,255,0.06)] bg-[#0a0a0f] text-[#a1a1aa] [&_svg]:h-5 [&_svg]:w-5">
+    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg border border-[#122B1A] bg-[#000000] text-[#6B7280] [&_svg]:h-5 [&_svg]:w-5">
       {children}
     </div>
   )
@@ -70,9 +70,9 @@ function CompetitorRadarMock() {
       {rows.map((row) => (
         <div
           key={row.name}
-          className="flex items-center justify-between gap-2 rounded-lg border border-[rgba(255,255,255,0.06)] bg-[#0a0a0f] px-2.5 py-2 sm:px-3"
+          className="flex items-center justify-between gap-2 rounded-lg border border-[#122B1A] bg-[#000000] px-2.5 py-2 sm:px-3"
         >
-          <span className="truncate text-xs font-medium text-[#e4e4e7]">{row.name}</span>
+          <span className="truncate text-xs font-medium text-[#FFFFFF]">{row.name}</span>
           <ThreatBadge level={row.level} />
         </div>
       ))}
@@ -91,12 +91,12 @@ function MarketSizingMock() {
       {bars.map((b) => (
         <div key={b.label}>
           <div className="mb-1.5 flex items-center justify-between text-xs">
-            <span className="font-medium text-[#a1a1aa]">{b.label}</span>
-            <span className="tabular-nums text-[#e4e4e7]">{b.value}</span>
+            <span className="font-medium text-[#6B7280]">{b.label}</span>
+            <span className="tabular-nums text-[#FFFFFF]">{b.value}</span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-[#0a0a0f]">
+          <div className="h-2 overflow-hidden rounded-full bg-[#000000]">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#6366f1] to-[#a78bfa] transition-all duration-500"
+              className="h-full rounded-full bg-gradient-to-r from-[#059669] to-[#34D399] transition-all duration-500"
               style={{ width: b.width }}
             />
           </div>
@@ -115,13 +115,13 @@ function GapScoreMock() {
     <div className="mt-6 flex items-center justify-center">
       <div className="relative flex h-28 w-28 items-center justify-center">
         <svg className="h-full w-full -rotate-90" viewBox="0 0 88 88">
-          <circle cx="44" cy="44" fill="none" r={r} stroke="#1f1f28" strokeWidth="8" />
+          <circle cx="44" cy="44" fill="none" r={r} stroke="#122B1A" strokeWidth="8" />
           <circle
             cx="44"
             cy="44"
             fill="none"
             r={r}
-            stroke="#6366f1"
+            stroke="#059669"
             strokeDasharray={c}
             strokeDashoffset={offset}
             strokeLinecap="round"
@@ -144,7 +144,7 @@ function VerdictMock() {
       <span className="inline-flex items-center rounded-md border border-[#22c55e]/35 bg-[#22c55e]/10 px-3 py-1.5 text-sm font-bold tracking-wide text-[#22c55e]">
         GO
       </span>
-      <p className="text-xs leading-relaxed text-[#71717a]">
+      <p className="text-xs leading-relaxed text-[#6B7280]">
         Strong pull from SMBs; differentiation is clear vs. incumbents — proceed with a focused MVP.
       </p>
     </div>
@@ -160,7 +160,7 @@ function TrendPulseMock() {
         <polyline
           fill="none"
           points="8,32 28,28 48,30 68,18 88,14 108,10"
-          stroke="#6366f1"
+          stroke="#059669"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -168,14 +168,14 @@ function TrendPulseMock() {
         <polyline
           fill="none"
           points="8,36 28,34 48,22 68,26 88,20 108,24"
-          stroke="#a78bfa"
+          stroke="#34D399"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
           opacity={0.85}
         />
       </svg>
-      <div className="mt-1 flex justify-between text-[10px] text-[#52525b]">
+      <div className="mt-1 flex justify-between text-[10px] text-[#6B7280]">
         <span>Search</span>
         <span>Funding</span>
       </div>
@@ -185,10 +185,10 @@ function TrendPulseMock() {
 
 function ExportMock() {
   return (
-    <div className="mt-6 rounded-lg border border-[rgba(255,255,255,0.06)] bg-[#0a0a0f] p-4">
-      <div className="mb-3 flex items-center gap-2 border-b border-[rgba(255,255,255,0.06)] pb-2">
-        <FileText className="h-4 w-4 text-[#6366f1]" strokeWidth={1.5} />
-        <span className="text-xs font-medium text-[#e4e4e7]">Validation_Report.pdf</span>
+    <div className="mt-6 rounded-lg border border-[#122B1A] bg-[#000000] p-4">
+      <div className="mb-3 flex items-center gap-2 border-b border-[#122B1A] pb-2">
+        <FileText className="h-4 w-4 text-[#059669]" strokeWidth={1.5} />
+        <span className="text-xs font-medium text-[#FFFFFF]">Validation_Report.pdf</span>
       </div>
       <div className="mb-4 space-y-1.5">
         <div className="h-1.5 w-full rounded bg-[rgba(255,255,255,0.08)]" />
@@ -197,7 +197,7 @@ function ExportMock() {
       </div>
       <button
         type="button"
-        className="flex w-full items-center justify-center gap-2 rounded-lg border border-[rgba(99,102,241,0.35)] bg-[#6366f1]/15 py-2 text-xs font-medium text-[#a5b4fc] transition-colors hover:bg-[#6366f1]/25"
+        className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#059669]/40 bg-[#059669]/15 py-2 text-xs font-medium text-[#34D399] transition-colors hover:bg-[#059669]/25"
       >
         <Download className="h-3.5 w-3.5" strokeWidth={2} />
         Download PDF
@@ -214,7 +214,7 @@ export function BentoGrid() {
     <section
       ref={ref}
       id="features"
-      className="bg-[#0a0a0f] px-4 py-24 [font-family:var(--font-inter),system-ui,sans-serif]"
+      className="bg-[#000000] px-4 py-24 [font-family:var(--font-inter),system-ui,sans-serif]"
     >
       <div className="mx-auto max-w-6xl">
         <motion.div
@@ -226,7 +226,7 @@ export function BentoGrid() {
           <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
             Everything you need to decide in 60 seconds.
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-[#a1a1aa] sm:text-lg">
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-[#6B7280] sm:text-lg">
             Not a chatbot. Not a template. A structured intelligence report — built for people who ship.
           </p>
         </motion.div>
@@ -243,7 +243,7 @@ export function BentoGrid() {
               <Radar strokeWidth={1.5} />
             </IconBox>
             <h3 className="text-lg font-semibold text-white sm:text-xl">Competitor Radar</h3>
-            <p className="mt-2 text-sm leading-relaxed text-[#a1a1aa]">
+            <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
               Instantly surface who&apos;s in the space, what they charge, and where they&apos;re weak. Know your
               battlefield before you write a line of code.
             </p>
@@ -255,7 +255,7 @@ export function BentoGrid() {
               <BarChart3 strokeWidth={1.5} />
             </IconBox>
             <h3 className="text-lg font-semibold text-white sm:text-xl">Market Sizing Engine</h3>
-            <p className="mt-2 text-sm leading-relaxed text-[#a1a1aa]">
+            <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
               TAM, SAM, SOM — in plain English, not consultant-speak. See if the opportunity is worth chasing before
               you build.
             </p>
@@ -268,9 +268,9 @@ export function BentoGrid() {
               <Gauge strokeWidth={1.5} />
             </IconBox>
             <h3 className="text-lg font-semibold text-white">
-              Gap Score<sup className="text-xs text-[#6366f1]">™</sup>
+              Gap Score<sup className="text-xs text-[#059669]">™</sup>
             </h3>
-            <p className="mt-2 text-sm leading-relaxed text-[#a1a1aa]">
+            <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
               A 0–10 signal showing how much unmet demand exists. The higher, the bigger your opening.
             </p>
             <GapScoreMock />
@@ -281,7 +281,7 @@ export function BentoGrid() {
               <Scale strokeWidth={1.5} />
             </IconBox>
             <h3 className="text-lg font-semibold text-white">Go / No-Go Verdict</h3>
-            <p className="mt-2 text-sm leading-relaxed text-[#a1a1aa]">
+            <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
               A direct call — Go, Pivot, or No-Go — with a one-paragraph rationale you can paste into your pitch deck.
             </p>
             <VerdictMock />
@@ -292,7 +292,7 @@ export function BentoGrid() {
               <TrendingUp strokeWidth={1.5} />
             </IconBox>
             <h3 className="text-lg font-semibold text-white">Trend Pulse</h3>
-            <p className="mt-2 text-sm leading-relaxed text-[#a1a1aa]">
+            <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
               See if your idea is riding a wave or dying one. Search trends + VC funding signals, overlaid.
             </p>
             <TrendPulseMock />
@@ -303,7 +303,7 @@ export function BentoGrid() {
               <Download strokeWidth={1.5} />
             </IconBox>
             <h3 className="text-lg font-semibold text-white">One-Click Export</h3>
-            <p className="mt-2 text-sm leading-relaxed text-[#a1a1aa]">
+            <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
               Download a clean PDF report. Drop it in your deck. Use it as your founding brief.
             </p>
             <ExportMock />

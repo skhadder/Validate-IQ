@@ -18,7 +18,7 @@ const testimonials = [
     attribution: "Arjun S., Hackathon Winner @ HackMIT",
   },
   {
-    quote: "I was about to build the wrong thing. ValidateIQ told me in 60 seconds.",
+    quote: "I was about to build the wrong thing. Validate IQ told me in 60 seconds.",
     attribution: "Priya K., Solo Founder",
   },
   {
@@ -40,14 +40,14 @@ export function LogoMarquee() {
   }, [])
 
   return (
-    <section ref={ref} className="overflow-hidden bg-[#0a0a0f] py-16 [font-family:var(--font-inter),system-ui,sans-serif]">
+    <section ref={ref} className="overflow-hidden bg-[#000000] py-16 [font-family:var(--font-inter),system-ui,sans-serif]">
       <motion.div
         initial={{ opacity: 0 }}
         animate={isInView ? { opacity: 1 } : {}}
         transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         className="mx-auto max-w-5xl px-4 sm:px-6"
       >
-        <p className="mb-10 text-center text-xs font-medium uppercase tracking-widest text-[#52525b]">
+        <p className="mb-10 text-center text-xs font-medium uppercase tracking-widest text-[#6B7280]">
           Trusted by builders at
         </p>
 
@@ -77,7 +77,7 @@ export function LogoMarquee() {
               <p className="text-base italic leading-relaxed text-[#e4e4e7] sm:text-lg">
                 &ldquo;{testimonials[testimonialIndex].quote}&rdquo;
               </p>
-              <footer className="mt-4 text-sm not-italic text-[#71717a]">
+              <footer className="mt-4 text-sm not-italic text-[#6B7280]">
                 — {testimonials[testimonialIndex].attribution}
               </footer>
             </motion.blockquote>
