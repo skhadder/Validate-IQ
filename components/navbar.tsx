@@ -27,7 +27,7 @@ export function Navbar() {
     >
       <nav
         ref={navRef}
-        className="relative flex items-center justify-between px-4 py-3 rounded-full bg-[#050F09]/80 backdrop-blur-md border border-[#122B1A]"
+        className="relative flex items-center justify-between px-4 py-3 rounded-full bg-[#060B18]/90 backdrop-blur-md border border-[#1E2D4A]"
       >
         {/* Logo */}
         <a href="#" className="flex items-center gap-2">
@@ -48,7 +48,7 @@ export function Navbar() {
               {hoveredIndex === index && (
                 <motion.div
                   layoutId="navbar-hover"
-                  className="absolute inset-0 bg-[#0A1A10] rounded-full"
+                  className="absolute inset-0 bg-[#0D1526] rounded-full"
                   initial={false}
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
@@ -60,10 +60,10 @@ export function Navbar() {
 
         {/* CTA Buttons */}
         <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => router.push("/workspace")} className="text-[#6B7280] hover:text-white hover:bg-[#0A1A10]">
+          <Button variant="ghost" size="sm" onClick={() => router.push("/workspace")} className="text-[#6B7280] hover:text-white hover:bg-[#0D1526]">
             Sign In
           </Button>
-          <Button size="sm" onClick={() => router.push("/workspace")} className="shimmer-btn bg-[#059669] text-[#000000] hover:bg-[#047857] rounded-full px-4">
+          <Button size="sm" onClick={() => router.push("/workspace")} className="shimmer-btn bg-[#10B981] text-white hover:bg-[#059669] rounded-full px-4">
             Get Started
           </Button>
         </div>
@@ -84,24 +84,24 @@ export function Navbar() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className="absolute top-full left-0 right-0 mt-2 p-4 rounded-2xl bg-[#050F09]/95 backdrop-blur-md border border-[#122B1A]"
+          className="absolute top-full left-0 right-0 mt-2 p-4 rounded-2xl bg-[#060B18]/98 backdrop-blur-md border border-[#1E2D4A]"
         >
           <div className="flex flex-col gap-2">
             {navItems.map((item) => (
               <a
                 key={item.label}
                 href={item.href}
-                className="px-4 py-3 text-sm text-[#6B7280] hover:text-white hover:bg-[#0A1A10] rounded-lg transition-colors"
+                className="px-4 py-3 text-sm text-[#6B7280] hover:text-white hover:bg-[#0D1526] rounded-lg transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.label}
               </a>
             ))}
-            <hr className="border-[#122B1A] my-2" />
+            <hr className="border-[#1E2D4A] my-2" />
             <Button variant="ghost" onClick={() => router.push("/workspace")} className="justify-start text-[#6B7280] hover:text-white">
               Sign In
             </Button>
-            <Button onClick={() => router.push("/workspace")} className="shimmer-btn bg-[#059669] text-[#000000] hover:bg-[#047857] rounded-full">Get Started</Button>
+            <Button onClick={() => router.push("/workspace")} className="shimmer-btn bg-[#10B981] text-white hover:bg-[#059669] rounded-full">Get Started</Button>
           </div>
         </motion.div>
       )}
