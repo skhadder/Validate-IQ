@@ -307,11 +307,14 @@ function ConfidenceBadge({ level }: { level: string }) {
   )
 }
 
-function EditButton({ onClick }: { onClick?: () => void }) {
+function EditButton({ onClick, expanded }: { onClick?: () => void; expanded?: boolean }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="rounded-full border transition-colors"
+      aria-expanded={expanded}
+      aria-haspopup="listbox"
+      className="rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]"
       style={{ fontSize: "10px", color: "#6B7280", borderColor: "#2A2D35", background: "transparent", padding: "3px 10px" }}
     >
       Edit
@@ -355,6 +358,8 @@ function SummaryCard({ verdict, entryScore }: { verdict: ReportData["verdict"]; 
         <div className="flex flex-col mr-6 mb-4">
           <span className="uppercase mb-1" style={{ fontSize: "10px", fontWeight: 500, color: "#6B7280", letterSpacing: "0.06em" }}>Verdict</span>
           <span
+            role="status"
+            aria-label={`Verdict: ${getVerdict(viabilityScore)}`}
             className="px-3 py-1 rounded-md self-start uppercase tracking-wide"
             style={{ fontSize: "14px", fontWeight: 700, color: vc.color, background: vc.bg, border: vc.border }}
           >
@@ -446,6 +451,7 @@ function IdeaProfileTab({
               </span>
               <EditButton
                 onClick={() => setOpenField(openField === key ? null : key)}
+                expanded={openField === key}
               />
             </div>
 
@@ -457,6 +463,7 @@ function IdeaProfileTab({
                 {SURVEY_OPTIONS[key].map((opt) => (
                   <button
                     key={opt}
+                    type="button"
                     onClick={() => {
                       setOpenField(null)
                       onFieldSelect(key, opt)
@@ -688,6 +695,7 @@ function Chatbot({
           {SUGGESTIONS.map((s) => (
             <button
               key={s}
+              type="button"
               onClick={() => sendMessage(s)}
               className="px-3 py-1 rounded-full border transition-colors hover:border-[#10B981] hover:text-white"
               style={{ fontSize: "12px", borderColor: "#2A2D35", color: "#6B7280", background: "transparent" }}
@@ -764,8 +772,10 @@ function Chatbot({
             }}
           />
           <button
+            type="button"
             onClick={() => sendMessage(inputValue)}
             title="Send message"
+            aria-label="Send message"
             className="w-[26px] h-[26px] rounded-md flex items-center justify-center shrink-0 transition-opacity hover:opacity-80"
             style={{ background: "#10B981" }}
           >
@@ -1351,8 +1361,10 @@ export default function ReportPage() {
             </p>
           </div>
           <button
+            type="button"
             onClick={() => router.push("/workspace")}
-            className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors hover:bg-white/10 ml-2"
+            aria-label="Back to Workspace"
+            className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981] ml-2"
             style={{ color: "#9CA3AF" }}
             title="Back to Workspace"
           >
@@ -1361,10 +1373,13 @@ export default function ReportPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b shrink-0" style={{ borderColor: "#2A2D35" }}>
+        <div role="tablist" className="flex border-b shrink-0" style={{ borderColor: "#2A2D35" }}>
           {(["profile", "sources"] as const).map((tab) => (
             <button
               key={tab}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab ? true : false}
               onClick={() => setActiveTab(tab)}
               className="flex-1 py-3 text-sm font-medium transition-colors border-b-[3px]"
               style={{
@@ -1428,23 +1443,28 @@ export default function ReportPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => router.push("/")}
-              className="w-8 h-8 rounded-md flex items-center justify-center transition-colors hover:bg-white/10"
+              aria-label="Go to homepage"
+              className="w-8 h-8 rounded-md flex items-center justify-center transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]"
               style={{ color: "#6B7280" }}
               title="Home"
             >
               <Home size={16} />
             </button>
             <button
+              type="button"
               onClick={handleRevalidate}
-              className="text-sm px-3.5 py-1.5 rounded-md border transition-colors hover:border-[#10B98140]"
+              className="text-sm px-3.5 py-1.5 rounded-md border transition-colors hover:border-[#10B98140] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]"
               style={{ borderColor: "#2A2D35", color: "#9CA3AF" }}
             >
               Re-validate
             </button>
             <button
+              type="button"
               onClick={handleDownloadPDF}
               disabled={pdfLoading}
+              aria-label={pdfLoading ? "Generating PDF…" : "Download PDF report"}
               className="text-sm px-3.5 py-1.5 rounded-md font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-60"
               style={{ background: "#10B981" }}
             >

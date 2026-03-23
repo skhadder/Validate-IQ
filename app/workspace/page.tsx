@@ -159,19 +159,23 @@ function ReportRow({ r, onLoadReport, onStarReport, onDeleteReport, formatDate }
       </button>
       <div className="flex items-center gap-0.5 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); onStarReport(r.id) }}
-          className="p-1 rounded transition-colors hover:text-yellow-400"
+          className="p-1 rounded transition-colors hover:text-yellow-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]"
           style={{ color: r.starred ? "#FBBF24" : "inherit" }}
-          title={r.starred ? "Unstar" : "Save to Saved Ideas"}
+          aria-label={r.starred ? "Unstar report" : "Star report"}
+          title={r.starred ? "Unstar" : "Star"}
         >
-          <Star size={12} fill={r.starred ? "#FBBF24" : "none"} />
+          <Star size={12} fill={r.starred ? "#FBBF24" : "none"} aria-hidden="true" />
         </button>
         <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); onDeleteReport(r.id) }}
-          className="p-1 rounded transition-colors hover:text-red-400"
+          className="p-1 rounded transition-colors hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]"
+          aria-label="Delete report"
           title="Delete"
         >
-          <Trash2 size={12} />
+          <Trash2 size={12} aria-hidden="true" />
         </button>
       </div>
     </div>
@@ -225,8 +229,10 @@ function Sidebar({
       {/* New Validation */}
       <div className="px-4 py-4">
         <button
+          type="button"
           onClick={onNewValidation}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-medium text-sm transition-all active:scale-[0.98]"
+          aria-label="Start a new validation"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-medium text-sm transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]"
           style={{ background: "transparent", border: "1px solid #2A2D35", color: "#9CA3AF" }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#10B981"; e.currentTarget.style.color = "#34D399" }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2D35"; e.currentTarget.style.color = "#9CA3AF" }}
@@ -245,8 +251,10 @@ function Sidebar({
           {NAV_ITEMS.map(({ icon: Icon, label, active, onClick }) => (
             <button
               key={label}
+              type="button"
               onClick={onClick}
-              className="flex items-center gap-2.5 px-3 py-2.5 text-base text-left transition-colors w-full"
+              aria-current={active ? "page" : undefined}
+              className="flex items-center gap-2.5 px-3 py-2.5 text-base text-left transition-colors w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]"
               style={{
                 background: active ? "rgba(16,185,129,0.06)" : "transparent",
                 color: active ? "#34D399" : "#6B7280",
@@ -374,7 +382,7 @@ function LoadingScreen({
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-8">
+    <div className="flex-1 flex flex-col items-center justify-center gap-8" role="status" aria-label="Validating your idea">
       {/* Spinner */}
       <div className="relative w-16 h-16">
         <div
@@ -392,7 +400,7 @@ function LoadingScreen({
       </div>
 
       {/* Steps */}
-      <div className="flex flex-col items-start gap-3">
+      <div className="flex flex-col items-start gap-3" aria-live="polite" aria-atomic="false">
         {LOADING_STEPS.map((s, i) => {
           const done = i < step
           const active = i === step
@@ -590,8 +598,10 @@ function SurveyScreen({
                 return (
                   <button
                     key={opt}
+                    type="button"
                     onClick={() => onChange(q.key, opt)}
-                    className="border transition-all"
+                    aria-pressed={selected ? "true" : "false"}
+                    className="border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981] focus-visible:ring-offset-1 focus-visible:ring-offset-black"
                     style={{
                       padding: "8px 16px",
                       borderRadius: "99px",
@@ -791,6 +801,14 @@ export default function WorkspacePage() {
       className="flex min-h-screen [font-family:var(--font-inter),system-ui,sans-serif]"
       style={{ background: "#000000" }}
     >
+      {/* Skip to main content */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:text-white focus:text-sm focus:font-medium"
+        style={{ background: "#10B981" }}
+      >
+        Skip to main content
+      </a>
       <Sidebar
         onNewValidation={handleNewValidation}
         savedReports={savedReports}
@@ -801,7 +819,7 @@ export default function WorkspacePage() {
       />
 
       {/* Main content */}
-      <div className="flex flex-col flex-1 ml-[280px] min-h-screen">
+      <div id="main-content" className="flex flex-col flex-1 ml-[280px] min-h-screen">
         {/* Demo banner */}
         {isDemoMode && (
           <div className="flex items-center justify-center py-2">
