@@ -2,11 +2,8 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { toast } from "sonner"
 import { LogoMark } from "@/components/logo-mark"
 import {
-  FileText,
-  Settings,
   Star,
   Zap,
   ArrowUp,
@@ -20,7 +17,7 @@ import demoData from "@/lib/demo-data.json"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type AppState = "empty" | "survey" | "loading" | "error"
+type AppState = "empty" | "survey" | "loading"
 
 interface SurveyAnswers {
   stage: string
@@ -89,12 +86,12 @@ const SURVEY_QUESTIONS: {
 ]
 
 const LOADING_STEPS = [
-  "Scanning competitors...",
+  "Analyzing your idea...",
   "Sizing the market...",
-  "Finding investors...",
+  "Scanning competitors...",
+  "Scoring market entry...",
   "Assessing viability...",
-  "Checking failure history...",
-  "Building your report...",
+  "Finding failure patterns...",
 ]
 
 // ─── Verdict Badge ────────────────────────────────────────────────────────────
@@ -199,7 +196,6 @@ function Sidebar({
   reportsRef: React.RefObject<HTMLDivElement | null>
 }) {
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [filterStarred, setFilterStarred] = useState(false)
 
   function formatDate(iso: string) {
@@ -241,7 +237,7 @@ function Sidebar({
       </div>
 
       {/* Nav + Saved Reports */}
-      <div ref={scrollContainerRef} className="px-3 flex-1 overflow-y-auto">
+      <div className="px-3 flex-1 overflow-y-auto">
         <p className="px-2 mb-2 text-xs font-semibold uppercase tracking-widest" style={{ color: "#6B7280" }}>
           Features
         </p>
@@ -396,25 +392,38 @@ function LoadingScreen({
       </div>
 
       {/* Steps */}
-      <div className="flex flex-col items-center gap-3">
-        {LOADING_STEPS.map((s, i) => (
-          <div
-            key={s}
-            className="flex items-center gap-2.5 text-sm transition-all duration-500"
-            style={{
-              color: i < step ? "#10B981" : i === step ? "#ffffff" : "#6B7280",
-              opacity: i > step + 1 ? 0.3 : 1,
-            }}
-          >
+      <div className="flex flex-col items-start gap-3">
+        {LOADING_STEPS.map((s, i) => {
+          const done = i < step
+          const active = i === step
+          return (
             <div
-              className="w-1.5 h-1.5 rounded-full shrink-0 transition-all duration-500"
+              key={s}
+              className="flex items-center gap-2.5 text-sm transition-all duration-500"
               style={{
-                background: i < step ? "#10B981" : i === step ? "#ffffff" : "#6B7280",
+                color: done ? "#10B981" : active ? "#ffffff" : "#6B7280",
+                opacity: i > step + 1 ? 0.3 : 1,
               }}
-            />
-            {s}
-          </div>
-        ))}
+            >
+              <div
+                className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center transition-all duration-500"
+                style={{
+                  background: done ? "rgba(16,185,129,0.15)" : active ? "rgba(255,255,255,0.1)" : "transparent",
+                  border: done ? "1px solid #10B981" : active ? "1px solid rgba(255,255,255,0.3)" : "1px solid #2A2D35",
+                }}
+              >
+                {done ? (
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                    <path d="M1.5 4L3 5.5L6.5 2.5" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : active ? (
+                  <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                ) : null}
+              </div>
+              {s}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -483,6 +492,7 @@ function EmptyState({
               {idea.length}/{MAX_CHARS}
             </span>
             <button
+              type="button"
               onClick={onSubmit}
               disabled={!idea.trim()}
               className="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
@@ -490,8 +500,8 @@ function EmptyState({
                 background: idea.trim() ? "#10B981" : "rgba(16,185,129,0.08)",
                 boxShadow: idea.trim() ? "0 0 18px rgba(16,185,129,0.45)" : "none",
               }}
-              onMouseEnter={(e) => { if (idea.trim()) e.currentTarget.style.background = "#059669" }}
-              onMouseLeave={(e) => { if (idea.trim()) e.currentTarget.style.background = "#10B981" }}
+              onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.background = "#059669" }}
+              onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.background = "#10B981" }}
             >
               <ArrowUp size={16} className="text-white" />
             </button>
@@ -656,35 +666,30 @@ export default function WorkspacePage() {
       if (deduped.length !== saved.length) {
         localStorage.setItem("validateiq_saved_reports", JSON.stringify(deduped))
       }
-      setSavedReports(deduped)
+      setSavedReports(deduped as SavedReport[])
     } catch {
       setSavedReports([])
     }
   }, [])
 
-  function runStepAnimation(signal: { cancelled: boolean }): Promise<void> {
+  function runDemoAnimation(): Promise<void> {
     return new Promise((resolve) => {
       setLoadingStep(0)
       const STEP_MS = 1500
-      ;[1, 2, 3, 4, 5].forEach((step) => {
-        setTimeout(() => {
-          if (!signal.cancelled) setLoadingStep(step)
-        }, step * STEP_MS)
+      ;[1, 2, 3, 4, 5, 6].forEach((step) => {
+        setTimeout(() => setLoadingStep(step), step * STEP_MS)
       })
-      setTimeout(() => {
-        if (!signal.cancelled) setLoadingStep(6)
-        resolve()
-      }, 6 * STEP_MS)
+      setTimeout(resolve, 6 * STEP_MS)
     })
   }
 
   async function runValidation(ideaText: string, answers: SurveyAnswers = surveyAnswers) {
     setLoadingError(false)
+    setLoadingStep(0)
     setAppState("loading")
 
     if (isDemoMode) {
-      const demoSignal = { cancelled: false }
-      await runStepAnimation(demoSignal)
+      await runDemoAnimation()
       localStorage.setItem("validateiq_report", JSON.stringify(demoData))
       localStorage.setItem("validateiq_idea", ideaText)
       localStorage.setItem("validateiq_survey", JSON.stringify(answers))
@@ -692,39 +697,50 @@ export default function WorkspacePage() {
       return
     }
 
-    const animSignal = { cancelled: false }
-    const animationPromise = runStepAnimation(animSignal)
-    const minAnimationPromise = new Promise<void>((resolve) =>
-      setTimeout(resolve, 4 * 1500)
-    )
-
-    let reportData: unknown = null
-    let apiError = false
-
     try {
       const res = await fetch("/api/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea: ideaText, survey: answers }),
+        body: JSON.stringify({ idea: ideaText, survey: answers, stream: true }),
       })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      reportData = await res.json()
+
+      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ""
+      let reportData: unknown = null
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split("\n\n")
+        buffer = lines.pop() ?? ""
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue
+          const json = JSON.parse(line.slice(6))
+          if (json.type === "progress") {
+            setLoadingStep(json.step)
+          } else if (json.type === "done") {
+            reportData = json.data
+          } else if (json.type === "error") {
+            throw new Error(json.message)
+          }
+        }
+      }
+
+      if (!reportData) throw new Error("No data received")
+
+      localStorage.setItem("validateiq_report", JSON.stringify(reportData))
+      localStorage.setItem("validateiq_idea", ideaText)
+      localStorage.setItem("validateiq_survey", JSON.stringify(answers))
+      router.push("/report")
     } catch {
-      apiError = true
-      animSignal.cancelled = true
-    }
-
-    if (apiError) {
       setLoadingError(true)
-      return
     }
-
-    await Promise.all([animationPromise, minAnimationPromise])
-
-    localStorage.setItem("validateiq_report", JSON.stringify(reportData))
-    localStorage.setItem("validateiq_idea", ideaText)
-    localStorage.setItem("validateiq_survey", JSON.stringify(answers))
-    router.push("/report")
   }
 
   function handleSubmit() {

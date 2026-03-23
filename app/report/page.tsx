@@ -212,8 +212,11 @@ function TrendChart({ growthRate, timing }: { growthRate: string; timing: string
 
 function extractMarketValue(val: string): string {
   if (!val) return "—"
-  const dollarMatch = val.match(/\$[\d.,]+\s*[BMKTbmkt]+/)
-  if (dollarMatch) return dollarMatch[0].trim()
+  const dollarMatch = val.match(/\$([\d.,]+)\s*([BMKTbmkt]+)/)
+  if (dollarMatch) {
+    const suffix = dollarMatch[2].toUpperCase().replace("T", "T").replace("B", "B").replace("M", "M").replace("K", "K")
+    return `$${dollarMatch[1]}${suffix[0]}`
+  }
   const usdMatch = val.match(/USD\s*([\d.,]+)\s*(trillion|billion|million|thousand)/i)
   if (usdMatch) {
     const num = usdMatch[1]
@@ -221,7 +224,34 @@ function extractMarketValue(val: string): string {
     const suffix = unit === "trillion" ? "T" : unit === "billion" ? "B" : unit === "million" ? "M" : "K"
     return `$${num}${suffix}`
   }
+  const numMatch = val.match(/([\d.,]+)\s*(trillion|billion|million|thousand)/i)
+  if (numMatch) {
+    const num = numMatch[1]
+    const unit = numMatch[2].toLowerCase()
+    const suffix = unit === "trillion" ? "T" : unit === "billion" ? "B" : unit === "million" ? "M" : "K"
+    return `$${num}${suffix}`
+  }
   return val.length > 12 ? val.slice(0, 12) + "…" : val
+}
+
+// ─── Count-up animation hook ──────────────────────────────────────────────────
+
+function useCountUp(target: number, duration = 1000) {
+  const [val, setVal] = useState(0)
+  const rafRef = useRef<number>()
+  useEffect(() => {
+    let start: number | null = null
+    const animate = (ts: number) => {
+      if (!start) start = ts
+      const progress = Math.min((ts - start) / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setVal(Math.round(eased * target * 10) / 10)
+      if (progress < 1) rafRef.current = requestAnimationFrame(animate)
+    }
+    rafRef.current = requestAnimationFrame(animate)
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
+  }, [target, duration])
+  return val
 }
 
 // ─── Score helpers ────────────────────────────────────────────────────────────
@@ -306,6 +336,15 @@ function SummaryCard({ verdict, entryScore }: { verdict: ReportData["verdict"]; 
   const vc = getVerdictColors(viabilityScore)
   const bc = getBarrierColors(entryScoreNum)
 
+  const animViability = useCountUp(viabilityScore)
+  const animEntry = useCountUp(entryScoreNum)
+
+  const [barReady, setBarReady] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setBarReady(true), 80)
+    return () => clearTimeout(t)
+  }, [])
+
   return (
     <div
       className="rounded-lg border flex flex-col"
@@ -326,10 +365,10 @@ function SummaryCard({ verdict, entryScore }: { verdict: ReportData["verdict"]; 
         <div className="flex flex-col mr-6 mb-4">
           <span className="uppercase mb-1" style={{ fontSize: "10px", fontWeight: 500, color: "#6B7280", letterSpacing: "0.06em" }}>Viability Score</span>
           <span className="mb-1" style={{ fontSize: "36px", fontWeight: 700, lineHeight: 1, color: vc.color, display: "block" }}>
-            {viabilityScore}<span style={{ fontSize: "16px", fontWeight: 400, color: "#64748B" }}>/9</span>
+            {animViability}<span style={{ fontSize: "16px", fontWeight: 400, color: "#64748B" }}>/9</span>
           </span>
           <div className="w-24 rounded-full mt-1" style={{ height: "6px", background: "#2A2D35", borderRadius: "99px" }}>
-            <div style={{ width: `${(viabilityScore / 9) * 100}%`, height: "100%", borderRadius: "99px", background: vc.color }} />
+            <div style={{ width: barReady ? `${(viabilityScore / 9) * 100}%` : "0%", height: "100%", borderRadius: "99px", background: vc.color, transition: "width 1s cubic-bezier(0.4,0,0.2,1)" }} />
           </div>
           <div className="flex justify-between w-24">
             <span style={{ fontSize: "8px", color: "#6B7280" }}>Low</span>
@@ -340,10 +379,10 @@ function SummaryCard({ verdict, entryScore }: { verdict: ReportData["verdict"]; 
         <div className="flex flex-col mb-4">
           <span className="uppercase mb-1" style={{ fontSize: "10px", fontWeight: 500, color: "#6B7280", letterSpacing: "0.06em" }}>Entry Score</span>
           <span className="mb-1" style={{ fontSize: "36px", fontWeight: 700, lineHeight: 1, color: bc.color, display: "block" }}>
-            {entryScoreNum}<span style={{ fontSize: "16px", fontWeight: 400, color: "#64748B" }}>/10</span>
+            {animEntry}<span style={{ fontSize: "16px", fontWeight: 400, color: "#64748B" }}>/10</span>
           </span>
           <div className="w-24 rounded-full mt-1" style={{ height: "6px", background: "#2A2D35", borderRadius: "99px" }}>
-            <div style={{ width: `${(entryScoreNum / 10) * 100}%`, height: "100%", borderRadius: "99px", background: bc.color }} />
+            <div style={{ width: barReady ? `${(entryScoreNum / 10) * 100}%` : "0%", height: "100%", borderRadius: "99px", background: bc.color, transition: "width 1s cubic-bezier(0.4,0,0.2,1)" }} />
           </div>
           <div className="flex justify-between w-24">
             <span style={{ fontSize: "8px", color: "#6B7280" }}>Low</span>
@@ -726,6 +765,7 @@ function Chatbot({
           />
           <button
             onClick={() => sendMessage(inputValue)}
+            title="Send message"
             className="w-[26px] h-[26px] rounded-md flex items-center justify-center shrink-0 transition-opacity hover:opacity-80"
             style={{ background: "#10B981" }}
           >
@@ -1013,11 +1053,11 @@ function Card5Verdict({
       <div className="flex flex-col gap-0.5">
         <span className="uppercase" style={{ fontSize: "12px", fontWeight: 500, color: "#6B7280", letterSpacing: "0.06em" }}>Viability score</span>
         <span style={{ fontSize: "36px", fontWeight: 700, color: vc.color }}>
-          {score}<span style={{ fontSize: "16px", fontWeight: 400, color: "#64748B" }}>/100</span>
+          {score}<span style={{ fontSize: "16px", fontWeight: 400, color: "#64748B" }}>/9</span>
         </span>
       </div>
       <div className="w-full" style={{ height: "6px", background: "#2A2D35", borderRadius: "99px" }}>
-        <div style={{ width: `${score}%`, height: "100%", borderRadius: "99px", background: vc.color }} />
+        <div style={{ width: `${(score / 9) * 100}%`, height: "100%", borderRadius: "99px", background: vc.color }} />
       </div>
       <div className="flex justify-between mt-1">
         <span style={{ fontSize: "11px", color: "#6B7280" }}>Low Risk</span>
