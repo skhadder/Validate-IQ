@@ -19,55 +19,47 @@ export function Hero() {
 
   return (
     <section
-      className="relative min-h-screen flex flex-col justify-center px-4 sm:px-6 lg:px-8 pt-28 pb-8 overflow-hidden bg-[#000000] [font-family:var(--font-inter),system-ui,sans-serif]"
+      className="relative flex min-h-[85vh] flex-col justify-center overflow-hidden bg-[var(--landing-bg)] px-4 pb-16 pt-12 sm:px-6 sm:pt-16 lg:px-8"
+      style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}
     >
-      <div className="absolute inset-0 bg-[#000000] pointer-events-none" aria-hidden />
-
-      <div className="relative z-10 mx-auto w-full max-w-3xl">
+      <div className="relative z-10 mx-auto w-full max-w-4xl">
         <div className="flex flex-col items-center text-center">
-          <motion.p
-            initial={{ opacity: 0, y: 14 }}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.03, ease: easeOut }}
-            className="mb-4 text-4xl font-bold tracking-wide text-[#10B981]"
+            transition={{ duration: 0.45, ease: easeOut }}
+            className="mb-8 inline-flex rounded-full border border-[var(--landing-border)] bg-[var(--landing-surface)] px-4 py-1.5"
           >
-            VERDICT
-          </motion.p>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[var(--landing-accent)]">
+              Powered by live web research
+            </span>
+          </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.05, ease: easeOut }}
-            className="text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-[3.25rem] lg:leading-[1.08]"
+            transition={{ duration: 0.45, delay: 0.05, ease: easeOut }}
+            className="font-heading text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl lg:leading-[1.05]"
+            style={{ fontFamily: "var(--font-dm-sans), system-ui, sans-serif" }}
           >
-            Stop building. Start knowing.
+            Diligence in 60 seconds.
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1, ease: easeOut }}
-            className="mt-5 max-w-xl text-base leading-relaxed text-[#6B7280] sm:text-lg"
+            transition={{ duration: 0.45, delay: 0.1, ease: easeOut }}
+            className="mt-6 max-w-2xl text-base leading-relaxed text-[var(--landing-muted)] sm:text-lg"
           >
-            Type your startup idea. Get a full market validation report in 60 seconds — competitors, market size,
-            gaps, and a clear go/no-go verdict. No more guessing.
+            From live web research + your founder profile. Instant strategic syntheses for high-stakes decisions.{" "}
+            <span className="text-slate-500">(Not legal or financial advice.)</span>
           </motion.p>
 
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.12, ease: easeOut }}
-            className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[#2A2D35] bg-[#1C1F26] px-3 py-1"
-          >
-            <span style={{ fontSize: "10px", color: "#60A5FA" }}>⚡</span>
-            <span style={{ fontSize: "11px", color: "#60A5FA" }}>Powered by Perplexity live search</span>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.15, ease: easeOut }}
-            className="mt-4 flex justify-center"
+            transition={{ duration: 0.45, delay: 0.14, ease: easeOut }}
+            className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
           >
             <Button
               size="lg"
@@ -76,10 +68,17 @@ export function Hero() {
                 localStorage.removeItem("demoIdea")
                 router.push("/workspace")
               }}
-              className="h-auto rounded-lg border-0 bg-[#10B981] px-8 py-4 font-semibold text-white shadow-none transition-[box-shadow,background-color] duration-300 ease-out hover:bg-[#059669] hover:shadow-[0_0_24px_-4px_rgba(16,185,129,0.4)]"
-              style={{ fontSize: "16px" }}
+              className="h-12 min-w-[180px] rounded-md border-0 bg-white px-8 text-base font-semibold text-[var(--landing-cta-on-light)] shadow-none hover:bg-slate-200"
             >
-              Validate My Idea →
+              Run a memo
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={handleTryDemo}
+              className="h-12 min-w-[180px] rounded-md border-[var(--landing-border)] bg-transparent text-base font-semibold text-white hover:bg-[var(--landing-surface)]"
+            >
+              See sample memo
             </Button>
           </motion.div>
         </div>

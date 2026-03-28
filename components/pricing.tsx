@@ -1,223 +1,124 @@
 "use client"
 
 import { motion, useInView } from "framer-motion"
-import { useRef, useState } from "react"
+import { useRef } from "react"
 import { useRouter } from "next/navigation"
+import { Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-type Billing = "monthly" | "annual"
+const freeFeatures = [
+  { text: "3 memos per month", included: true },
+  { text: "Live web research", included: true },
+  { text: "PDF export", included: false },
+  { text: "Scenario mode", included: false },
+]
 
-const plans = [
-  {
-    name: "Starter",
-    subtitle: "For first-time validators",
-    monthly: 0,
-    annualMonthly: 0,
-    annualBilled: 0,
-    features: [
-      "3 validations/month",
-      "Competitor overview",
-      "Basic Go/No-Go verdict",
-      "PDF export (watermarked)",
-    ],
-    cta: "Start Free →",
-    ctaVariant: "ghost" as const,
-    popular: false,
-  },
-  {
-    name: "Builder",
-    subtitle: "For active founders & hackathon teams",
-    monthly: 17,
-    annualMonthly: 8,
-    annualBilled: 96,
-    features: [
-      "Unlimited validations",
-      "Full competitor deep-dives",
-      "Gap Score™ + Trend Pulse",
-      "Clean PDF exports",
-      "Idea history & saved reports",
-    ],
-    cta: "Get Builder →",
-    ctaVariant: "indigo" as const,
-    popular: true,
-  },
-  {
-    name: "Team",
-    subtitle: "For startup teams & accelerators",
-    monthly: 39,
-    annualMonthly: 27,
-    annualBilled: 324,
-    features: [
-      "Everything in Builder",
-      "5 team seats",
-      "Collaborative report comments",
-      "Priority processing",
-      "Slack export integration",
-    ],
-    cta: "Start Team Trial →",
-    ctaVariant: "ghost" as const,
-    popular: false,
-  },
+const proFeatures = [
+  { text: "Unlimited memos", included: true },
+  { text: "Full PDF & CSV export", included: true },
+  { text: "AI scenario modeling", included: true },
+  { text: "Team workspace", included: true },
 ]
 
 export function Pricing() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
-  const [billing, setBilling] = useState<Billing>("monthly")
-  const [saveBounceKey, setSaveBounceKey] = useState(0)
   const router = useRouter()
 
   return (
     <section
       id="pricing"
       ref={ref}
-      className="bg-[#000000] px-4 py-24 [font-family:var(--font-inter),system-ui,sans-serif]"
+      className="bg-[var(--landing-bg)] px-4 py-24"
+      style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}
     >
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-5xl">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-12 text-center"
+          className="mb-14 text-center"
         >
-          <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-            One tool. One decision. Clear pricing.
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-base text-[#6B7280] sm:text-lg">
-            Start free. Go deeper when you&apos;re ready.
+          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--landing-accent)]">
+            Unit economics
           </p>
-
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-4">
-            <div className="inline-flex items-center rounded-full border border-[#2A2D35] bg-[#1C1F26] p-1">
-              <button
-                type="button"
-                onClick={() => setBilling("monthly")}
-                className={cn(
-                  "relative rounded-full px-5 py-2 text-sm font-medium transition-colors",
-                  billing === "monthly" ? "text-white" : "text-[#6B7280]",
-                )}
-              >
-                {billing === "monthly" && (
-                  <motion.span
-                    layoutId="pricing-billing-pill"
-                    className="absolute inset-0 rounded-full bg-[rgba(16,185,129,0.2)] ring-1 ring-[#10B981]/40"
-                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                  />
-                )}
-                <span className="relative z-10">Monthly</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setBilling("annual")
-                  setSaveBounceKey((k) => k + 1)
-                }}
-                className={cn(
-                  "relative rounded-full px-5 py-2 text-sm font-medium transition-colors",
-                  billing === "annual" ? "text-white" : "text-[#6B7280]",
-                )}
-              >
-                {billing === "annual" && (
-                  <motion.span
-                    layoutId="pricing-billing-pill"
-                    className="absolute inset-0 rounded-full bg-[rgba(16,185,129,0.2)] ring-1 ring-[#10B981]/40"
-                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                  />
-                )}
-                <span className="relative z-10">Annual</span>
-              </button>
-            </div>
-
-            {billing === "annual" && (
-              <motion.span
-                key={saveBounceKey}
-                initial={{ y: 0 }}
-                animate={{ y: [0, -8, 0] }}
-                transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
-                className="inline-flex rounded-full border border-[#059669]/40 bg-[#059669]/15 px-3 py-1 text-xs font-medium text-[#34D399]"
-              >
-                Save 30%
-              </motion.span>
-            )}
-          </div>
+          <h2 className="mt-3 font-heading text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Investment plans
+          </h2>
         </motion.div>
 
-        <div className="grid grid-cols-1 items-start gap-6 pt-4 md:grid-cols-3 md:gap-5 lg:gap-8 lg:py-6">
-          {plans.map((plan, index) => {
-            const isPopular = plan.popular
-            const displayMonthly = billing === "monthly" ? plan.monthly : plan.annualMonthly
-            const showBilled = billing === "annual" && plan.annualBilled > 0
-
-            return (
-              <motion.div
-                key={plan.name}
-                initial={{ opacity: 0, y: 20 }}
-                animate={isInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.45, delay: 0.08 * index, ease: [0.22, 1, 0.36, 1] }}
-                className={cn(
-                  "relative flex flex-col rounded-2xl border bg-[#1C1F26] p-6",
-                  "border-[#2A2D35]",
-                  isPopular &&
-                    "z-10 border-[#10B981] shadow-[0_0_30px_rgba(16,185,129,0.2)] md:scale-[1.05]",
-                )}
-              >
-                {isPopular && (
-                  <div className="absolute -top-0 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
-                    <span className="whitespace-nowrap rounded-full border border-[#10B981]/40 bg-[#10B981] px-3 py-1 text-xs font-semibold text-white shadow-sm">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-
-                <div className={cn("mb-6", isPopular && "mt-2")}>
-                  <h3 className="text-xl font-semibold text-white">{plan.name}</h3>
-                  <p className="mt-1 text-sm text-[#6B7280]">{plan.subtitle}</p>
-                </div>
-
-                <div className="mb-6">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold tabular-nums text-white">${displayMonthly}</span>
-                    <span className="text-sm text-[#6B7280]">/month</span>
-                  </div>
-                  {showBilled && (
-                    <p className="mt-1 text-xs text-[#6B7280]">Billed ${plan.annualBilled}/year</p>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.45, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col rounded-2xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-8"
+          >
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-white">Free</h3>
+              <div className="mt-4 flex items-baseline gap-1">
+                <span className="text-4xl font-bold tabular-nums text-white">$0</span>
+                <span className="text-[var(--landing-muted)]">/ mo</span>
+              </div>
+            </div>
+            <ul className="mb-10 flex-1 space-y-4">
+              {freeFeatures.map((f) => (
+                <li key={f.text} className="flex items-center gap-3 text-sm">
+                  {f.included ? (
+                    <Check className="h-5 w-5 shrink-0 text-[var(--landing-accent)]" strokeWidth={2} />
+                  ) : (
+                    <X className="h-5 w-5 shrink-0 text-slate-600" strokeWidth={2} />
                   )}
-                  {billing === "annual" && plan.monthly === 0 && (
-                    <p className="mt-1 text-xs text-[#6B7280]">Annual: $0</p>
-                  )}
-                </div>
+                  <span className={cn(f.included ? "text-white" : "text-slate-500 line-through decoration-slate-600")}>
+                    {f.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/workspace")}
+              className="h-12 w-full rounded-md border-[var(--landing-border)] bg-transparent font-semibold text-white hover:bg-[var(--landing-surface-elevated)]"
+            >
+              Start free
+            </Button>
+          </motion.div>
 
-                <ul className="mb-8 flex-1 space-y-3">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex gap-2.5 text-sm text-[#FFFFFF]">
-                      <span className="shrink-0 font-medium text-[#10B981]" aria-hidden>
-                        ✓
-                      </span>
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                {plan.ctaVariant === "indigo" ? (
-                  <Button
-                    onClick={() => router.push("/workspace")}
-                    className="h-11 w-full rounded-lg border-0 bg-[#10B981] text-base font-medium text-white shadow-none transition-[box-shadow] duration-300 hover:bg-[#059669] hover:shadow-[0_0_24px_-4px_rgba(52,211,153,0.35)]"
-                  >
-                    {plan.cta}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    onClick={() => router.push("/workspace")}
-                    className="h-11 w-full rounded-lg border border-[#2A2D35] bg-transparent text-base font-medium text-[#6B7280] transition-colors hover:border-[#10B981]/50 hover:bg-[rgba(16,185,129,0.06)] hover:text-[#FFFFFF]"
-                  >
-                    {plan.cta}
-                  </Button>
-                )}
-              </motion.div>
-            )
-          })}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.45, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className="relative flex flex-col rounded-2xl border border-[var(--landing-accent)]/40 bg-[var(--landing-surface-elevated)] p-8 shadow-[0_0_40px_-12px_rgba(20,184,166,0.25)]"
+          >
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <span className="whitespace-nowrap rounded-full border border-[var(--landing-accent)]/50 bg-[var(--landing-accent-dim)] px-4 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--landing-accent)]">
+                Recommended
+              </span>
+            </div>
+            <div className="mb-8 mt-2">
+              <h3 className="text-lg font-semibold text-white">Pro</h3>
+              <div className="mt-4 flex items-baseline gap-1">
+                <span className="text-4xl font-bold tabular-nums text-white">$19</span>
+                <span className="text-[var(--landing-muted)]">/ mo</span>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">Billed monthly · cancel anytime</p>
+            </div>
+            <ul className="mb-10 flex-1 space-y-4">
+              {proFeatures.map((f) => (
+                <li key={f.text} className="flex items-center gap-3 text-sm text-white">
+                  <Check className="h-5 w-5 shrink-0 text-[var(--landing-accent)]" strokeWidth={2} />
+                  {f.text}
+                </li>
+              ))}
+            </ul>
+            <Button
+              onClick={() => router.push("/workspace")}
+              className="h-12 w-full rounded-md border-0 bg-white font-semibold text-[var(--landing-cta-on-light)] hover:bg-slate-200"
+            >
+              Go unlimited
+            </Button>
+          </motion.div>
         </div>
       </div>
     </section>

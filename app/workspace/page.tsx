@@ -1,23 +1,25 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { LogoMark } from "@/components/logo-mark"
 import {
-  Star,
-  Zap,
+  Archive,
   ArrowUp,
+  Clock,
+  ExternalLink,
+  MoreHorizontal,
+  Pencil,
   Plus,
-  BookOpen,
-  ArrowLeft,
+  Search,
   Trash2,
-  Home,
+  Zap,
 } from "lucide-react"
 import demoData from "@/lib/demo-data.json"
-
-// ─── Types ───────────────────────────────────────────────────────────────────
+import { viabilityForLedgerEntry } from "@/lib/viability-score"
 
 type AppState = "empty" | "survey" | "loading"
+type WorkspaceView = "new" | "history" | "research"
 
 interface SurveyAnswers {
   stage: string
@@ -60,386 +62,208 @@ const SURVEY_QUESTIONS: {
   },
   {
     key: "technical",
-    label: "What's your technical background?",
+    label: "Technical background?",
     options: ["Non-technical", "Some technical skills", "Technical / developer", "Technical co-founder"],
   },
   {
     key: "budget",
-    label: "How much can you invest to get started?",
+    label: "Starting budget?",
     options: ["Under $1K", "$1K – $10K", "$10K – $50K", "$50K – $100K", "$100K+"],
   },
   {
     key: "time",
-    label: "Do you have experience in this industry?",
+    label: "Industry experience?",
     options: ["None — complete outsider", "Some — adjacent or hobbyist", "Strong — worked in this space", "Expert — 5+ years"],
   },
   {
     key: "network",
-    label: "What's your network like in this space?",
+    label: "Network in this space?",
     options: ["No connections", "A few contacts", "Active network in this space", "Deep domain expertise"],
   },
   {
     key: "geography",
-    label: "Where are you targeting first?",
+    label: "Target geography?",
     options: ["United States", "North America", "Europe", "Asia Pacific", "Global", "Other"],
   },
 ]
 
 const LOADING_STEPS = [
-  "Analyzing your idea...",
-  "Sizing the market...",
-  "Scanning competitors...",
-  "Scoring market entry...",
-  "Assessing viability...",
-  "Finding failure patterns...",
+  "Analyzing idea",
+  "Sizing market",
+  "Scanning competitors",
+  "Scoring entry",
+  "Synthesizing verdict",
+  "Identifying failure patterns",
 ]
 
-// ─── Verdict Badge ────────────────────────────────────────────────────────────
+const MAX_CHARS = 200
 
-function VerdictBadge({ verdict }: { verdict: string }) {
-  const color =
-    verdict === "GO" ? "#34D399" : verdict === "CONDITIONAL GO" ? "#FBBF24" : "#F87171"
-  const bg =
-    verdict === "GO"
-      ? "rgba(52,211,153,0.12)"
-      : verdict === "CONDITIONAL GO"
-      ? "rgba(251,191,36,0.12)"
-      : "rgba(248,113,113,0.12)"
-  return (
-    <span
-      style={{
-        fontSize: "9px",
-        padding: "2px 6px",
-        borderRadius: "99px",
-        background: bg,
-        color,
-        fontWeight: 600,
-        whiteSpace: "nowrap",
-        flexShrink: 0,
-      }}
-    >
-      {verdict}
-    </span>
-  )
+const BORDER = "#2a2a2a"
+const TEXT_MUTED = "#555"
+const ACCENT = "#2dd4bf"
+
+function verdictTone(verdict: string) {
+  if (verdict === "GO")
+    return "border border-teal-500/40 bg-teal-500/10 text-teal-400"
+  if (verdict === "CONDITIONAL GO")
+    return "border border-amber-500/40 bg-amber-500/10 text-amber-400"
+  return "bg-red-500/10 text-red-400 border border-red-500/30"
 }
 
-// ─── Report Row ──────────────────────────────────────────────────────────────
-
-function ReportRow({ r, onLoadReport, onStarReport, onDeleteReport, formatDate }: {
-  r: SavedReport
-  onLoadReport: (r: SavedReport) => void
-  onStarReport: (id: string) => void
-  onDeleteReport: (id: string) => void
-  formatDate: (iso: string) => string
-}) {
-  return (
-    <div
-      className="group flex items-start gap-2 px-3 py-2.5 rounded-lg transition-colors w-full"
-      style={{ color: "#6B7280" }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = "rgba(255,255,255,0.05)"
-        e.currentTarget.style.color = "#ffffff"
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = "transparent"
-        e.currentTarget.style.color = "#6B7280"
-      }}
-    >
-      <button onClick={() => onLoadReport(r)} className="flex items-start gap-2 text-left flex-1 min-w-0">
-        <BookOpen size={13} className="shrink-0 mt-0.5" />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1 mb-0.5 flex-wrap">
-            <span className="text-sm text-white truncate">
-              {r.idea.slice(0, 45)}{r.idea.length > 45 ? "…" : ""}
-            </span>
-            <VerdictBadge verdict={r.verdict} />
-          </div>
-          <span className="text-xs" style={{ color: "#6B7280" }}>{formatDate(r.date)}</span>
-        </div>
-      </button>
-      <div className="flex items-center gap-0.5 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onStarReport(r.id) }}
-          className="p-1 rounded transition-colors hover:text-yellow-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]"
-          style={{ color: r.starred ? "#FBBF24" : "inherit" }}
-          aria-label={r.starred ? "Unstar report" : "Star report"}
-          title={r.starred ? "Unstar" : "Star"}
-        >
-          <Star size={12} fill={r.starred ? "#FBBF24" : "none"} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onDeleteReport(r.id) }}
-          className="p-1 rounded transition-colors hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]"
-          aria-label="Delete report"
-          title="Delete"
-        >
-          <Trash2 size={12} aria-hidden="true" />
-        </button>
-      </div>
-    </div>
-  )
+function formatDate(iso: string) {
+  try {
+    const d = new Date(iso)
+    const day = d.getUTCDate().toString().padStart(2, "0")
+    const month = d.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" }).toUpperCase()
+    const year = d.getUTCFullYear()
+    return `${day} ${month} ${year}`
+  } catch {
+    return ""
+  }
 }
 
-// ─── Sidebar ─────────────────────────────────────────────────────────────────
+function formatArchiveHeaderDate(iso: string) {
+  try {
+    return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }).toUpperCase()
+  } catch {
+    return "—"
+  }
+}
+
+const SUGGESTION_CHIPS = [
+  { title: "Analyze a SaaS startup", category: "GROWTH & RETENTION", prompt: "Analyze a SaaS startup targeting SMBs with a subscription model, focusing on growth levers and retention risks." },
+  { title: "Evaluate a marketplace idea", category: "LIQUIDITY ANALYSIS", prompt: "Evaluate a two-sided marketplace concept, assessing liquidity challenges, supply-demand balance, and monetization strategy." },
+  { title: "Score a deeptech concept", category: "IP & TECH READINESS", prompt: "Score a deeptech concept on IP defensibility, technology readiness level, and path to commercialization." },
+]
 
 function Sidebar({
+  activeView,
+  onViewChange,
   onNewValidation,
   savedReports,
   onLoadReport,
-  onDeleteReport,
-  onStarReport,
-  reportsRef,
+  onDelete: _onDelete,
 }: {
+  activeView: WorkspaceView
+  onViewChange: (view: WorkspaceView) => void
   onNewValidation: () => void
   savedReports: SavedReport[]
   onLoadReport: (r: SavedReport) => void
-  onDeleteReport: (id: string) => void
-  onStarReport: (id: string) => void
-  reportsRef: React.RefObject<HTMLDivElement | null>
+  onDelete: (_id: string) => void
 }) {
+  const recent = useMemo(
+    () => [...savedReports].sort((a, b) => +new Date(b.date) - +new Date(a.date)).slice(0, 4),
+    [savedReports],
+  )
 
-  const [filterStarred, setFilterStarred] = useState(false)
-
-  function formatDate(iso: string) {
-    try {
-      return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-    } catch {
-      return ""
-    }
-  }
-
-  const NAV_ITEMS = [
-    { icon: Zap, label: "Validate Idea", active: !filterStarred, onClick: () => setFilterStarred(false) },
-    { icon: Star, label: "Saved Ideas", active: filterStarred, onClick: () => setFilterStarred(v => !v) },
+  const tools = [
+    { id: "new" as const, label: "HISTORY", Icon: Clock },
+    { id: "history" as const, label: "ARCHIVE", Icon: Archive },
+    { id: "research" as const, label: "RESEARCH", Icon: Search },
   ]
 
   return (
-    <aside
-      className="fixed top-0 left-0 h-screen w-[280px] flex flex-col border-r z-20"
-      style={{ background: "#111318", borderColor: "#2A2D35" }}
-    >
+    <aside className="sticky top-0 z-20 flex h-screen w-[240px] shrink-0 flex-col overflow-hidden bg-[#111111] px-5 pb-5">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 h-14 border-b shrink-0" style={{ borderColor: "#2A2D35" }}>
-        <LogoMark />
-        <span className="font-semibold text-white text-base tracking-tight">Verdict</span>
+      <div className="shrink-0 pt-6 pb-5">
+        <Link href="/" className="group w-fit block">
+          <p className="font-heading text-xl font-bold tracking-[0.2em] text-white transition group-hover:opacity-80">
+            VERDICT
+          </p>
+          <p className="mt-1 text-[10px] font-semibold uppercase leading-tight tracking-[0.22em] text-[#555] transition group-hover:opacity-80">
+            Venture Diligence
+          </p>
+        </Link>
       </div>
 
-      {/* New Validation */}
-      <div className="px-4 py-4">
+      {/* New Analysis button */}
+      <div className="shrink-0 pb-4">
         <button
           type="button"
           onClick={onNewValidation}
-          aria-label="Start a new validation"
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-medium text-sm transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]"
-          style={{ background: "transparent", border: "1px solid #2A2D35", color: "#9CA3AF" }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#10B981"; e.currentTarget.style.color = "#34D399" }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2D35"; e.currentTarget.style.color = "#9CA3AF" }}
+          className="flex w-full items-center justify-between rounded-lg border border-[#2a2a2a] bg-[#1e1e1e] px-4 py-2.5 text-sm text-white transition hover:bg-[#242424]"
         >
-          <Plus size={15} />
-          New Validation
+          <span>New Analysis</span>
+          <Pencil size={14} className="text-[#555]" />
         </button>
       </div>
 
-      {/* Nav + Saved Reports */}
-      <div className="px-3 flex-1 overflow-y-auto">
-        <p className="px-2 mb-2 text-xs font-semibold uppercase tracking-widest" style={{ color: "#6B7280" }}>
-          Features
-        </p>
-        <nav className="flex flex-col gap-0.5 mb-6">
-          {NAV_ITEMS.map(({ icon: Icon, label, active, onClick }) => (
-            <button
-              key={label}
-              type="button"
-              onClick={onClick}
-              aria-current={active ? "page" : undefined}
-              className="flex items-center gap-2.5 px-3 py-2.5 text-base text-left transition-colors w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]"
-              style={{
-                background: active ? "rgba(16,185,129,0.06)" : "transparent",
-                color: active ? "#34D399" : "#6B7280",
-                borderLeft: active ? "2px solid #10B981" : "2px solid transparent",
-                borderRadius: active ? "0 6px 6px 0" : "6px",
-              }}
-              onMouseEnter={(e) => {
-                if (!active) {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.04)"
-                  e.currentTarget.style.color = "#ffffff"
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!active) {
-                  e.currentTarget.style.background = "transparent"
-                  e.currentTarget.style.color = "#6B7280"
-                }
-              }}
-            >
-              <Icon size={15} />
-              {label}
-            </button>
-          ))}
-        </nav>
+      {/* Divider */}
+      <div className="shrink-0 border-t border-[#1e1e1e] mb-4" />
 
-        <div ref={reportsRef}>
-          <p className="px-2 mb-2 text-xs font-semibold uppercase tracking-widest" style={{ color: "#6B7280" }}>
-            {filterStarred ? "Saved Ideas" : "Recent Validations"}
-          </p>
-          <div className="flex flex-col gap-0.5">
-            {(() => {
-              const list = filterStarred
-                ? savedReports.filter(r => r.starred)
-                : savedReports.slice(0, 5)
-              if (list.length === 0) return (
-                <p className="px-3 py-2 text-sm" style={{ color: "#6B7280" }}>
-                  {filterStarred ? "Star a validation to save it here." : "No validations yet. Run your first one above."}
-                </p>
-              )
-              return list.map((r) => (
-                <ReportRow key={r.id} r={r} onLoadReport={onLoadReport} onStarReport={onStarReport} onDeleteReport={onDeleteReport} formatDate={formatDate} />
-              ))
-            })()}
-          </div>
-        </div>
+      {/* Recent section */}
+      <div className="shrink-0">
+        <p className="mb-2 text-[10px] uppercase tracking-widest text-[#444]">Recent</p>
+        {recent.length === 0 ? (
+          <p className="text-sm text-[#444]">No analyses yet.</p>
+        ) : (
+          <ul className="space-y-0.5">
+            {recent.map((r) => (
+              <li key={r.id}>
+                <button
+                  type="button"
+                  onClick={() => onLoadReport(r)}
+                  className="w-full truncate text-left text-sm text-[#888] transition hover:text-white py-1"
+                >
+                  {r.idea}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
-      {/* User */}
-      <div className="px-4 py-4 border-t" style={{ borderColor: "#2A2D35" }}>
+      {/* Divider */}
+      <div className="shrink-0 border-t border-[#1e1e1e] my-4" />
+
+      {/* Tools section */}
+      <div className="shrink-0">
+        <p className="mb-2 text-[10px] uppercase tracking-widest text-[#444]">Tools</p>
+        <ul className="space-y-0.5">
+          {tools.map(({ id, label, Icon }) => {
+            const active = activeView === id
+            return (
+              <li key={id}>
+                <button
+                  type="button"
+                  onClick={() => onViewChange(id)}
+                  className={`flex w-full items-center gap-2.5 py-1.5 text-sm transition ${
+                    active
+                      ? "border-l-2 border-teal-400 pl-2 text-white"
+                      : "text-[#555] hover:text-[#888] pl-[3px]"
+                  }`}
+                >
+                  <Icon size={15} strokeWidth={1.75} />
+                  {label}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Footer */}
+      <div className="shrink-0 border-t border-[#1e1e1e] pt-4">
         <div className="flex items-center gap-3">
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm shrink-0"
-            style={{ background: "rgba(16,185,129,0.15)", color: "#34D399" }}
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1e1e1e] text-[11px] font-bold text-[#888]">
+            A4
+          </div>
+          <p className="min-w-0 flex-1 truncate text-sm font-medium text-white">Analyst 04</p>
+          <button
+            type="button"
+            className="shrink-0 text-[#444] transition hover:text-[#888]"
+            aria-label="More options"
           >
-            F
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-white truncate">Founder</p>
-            <p className="text-sm truncate" style={{ color: "#6B7280" }}>Free plan</p>
-          </div>
+            <MoreHorizontal size={16} />
+          </button>
         </div>
       </div>
     </aside>
   )
 }
-
-// ─── Top Bar ─────────────────────────────────────────────────────────────────
-
-function TopBar() {
-  const router = useRouter()
-  return (
-    <div
-      className="relative h-14 flex items-center justify-between px-6 border-b shrink-0"
-      style={{ borderColor: "#2A2D35" }}
-    >
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => router.push("/")}
-          className="w-8 h-8 rounded-md flex items-center justify-center transition-colors hover:bg-white/10"
-          style={{ color: "#6B7280" }}
-          title="Home"
-        >
-          <Home size={16} />
-        </button>
-        <span className="text-base font-medium text-white">Workspace</span>
-      </div>
-      <span className="absolute left-1/2 -translate-x-1/2 text-xl font-bold tracking-wide text-[#10B981]">VERDICT</span>
-    </div>
-  )
-}
-
-// ─── Loading Screen ───────────────────────────────────────────────────────────
-
-function LoadingScreen({
-  step,
-  error,
-  onGoBack,
-}: {
-  step: number
-  error?: boolean
-  onGoBack?: () => void
-}) {
-  if (error) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-6">
-        <div
-          className="w-12 h-12 rounded-full flex items-center justify-center"
-          style={{ background: "rgba(239,68,68,0.12)" }}
-        >
-          <span className="text-xl">⚠️</span>
-        </div>
-        <div className="text-center">
-          <p className="text-white font-medium mb-1">Something went wrong.</p>
-          <p className="text-sm" style={{ color: "#6B7280" }}>Please try again.</p>
-        </div>
-        <button
-          onClick={onGoBack}
-          className="px-5 py-2 rounded-lg text-sm font-medium text-white border transition-colors hover:border-[#34D399]"
-          style={{ borderColor: "#2A2D35", background: "transparent" }}
-        >
-          ← Go back
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-8" role="status" aria-label="Validating your idea">
-      {/* Spinner */}
-      <div className="relative w-16 h-16">
-        <div
-          className="absolute inset-0 rounded-full border-2 border-transparent animate-spin"
-          style={{ borderTopColor: "#10B981", borderRightColor: "rgba(16,185,129,0.3)" }}
-        />
-        <div
-          className="absolute inset-2 rounded-full border border-transparent animate-spin"
-          style={{
-            borderTopColor: "rgba(52,211,153,0.4)",
-            animationDirection: "reverse",
-            animationDuration: "0.8s",
-          }}
-        />
-      </div>
-
-      {/* Steps */}
-      <div className="flex flex-col items-start gap-3" aria-live="polite" aria-atomic="false">
-        {LOADING_STEPS.map((s, i) => {
-          const done = i < step
-          const active = i === step
-          return (
-            <div
-              key={s}
-              className="flex items-center gap-2.5 text-sm transition-all duration-500"
-              style={{
-                color: done ? "#10B981" : active ? "#ffffff" : "#6B7280",
-                opacity: i > step + 1 ? 0.3 : 1,
-              }}
-            >
-              <div
-                className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center transition-all duration-500"
-                style={{
-                  background: done ? "rgba(16,185,129,0.15)" : active ? "rgba(255,255,255,0.1)" : "transparent",
-                  border: done ? "1px solid #10B981" : active ? "1px solid rgba(255,255,255,0.3)" : "1px solid #2A2D35",
-                }}
-              >
-                {done ? (
-                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                    <path d="M1.5 4L3 5.5L6.5 2.5" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                ) : active ? (
-                  <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                ) : null}
-              </div>
-              {s}
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-// ─── Empty / Input State ──────────────────────────────────────────────────────
-
-const MAX_CHARS = 200
 
 function EmptyState({
   idea,
@@ -451,10 +275,19 @@ function EmptyState({
   onSubmit: () => void
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const remaining = MAX_CHARS - idea.length
+
   useEffect(() => {
     textareaRef.current?.focus()
   }, [])
+
+  function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const val = e.target.value.slice(0, MAX_CHARS)
+    onIdeaChange(val)
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto"
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + "px"
+    }
+  }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -463,98 +296,70 @@ function EmptyState({
     }
   }
 
+  function handleChip(prompt: string) {
+    onIdeaChange(prompt.slice(0, MAX_CHARS))
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto"
+        textareaRef.current.style.height = textareaRef.current.scrollHeight + "px"
+        textareaRef.current.focus()
+      }
+    }, 0)
+  }
+
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-3xl mx-auto w-full">
-      {/* Heading */}
-      <div className="text-center mb-10">
-        <h1 className="text-3xl font-semibold text-white mb-3 tracking-tight">
-          What&apos;s your next idea?
-        </h1>
-        <p className="text-base" style={{ color: "#6B7280" }}>
-          Type it below. Get competitors, market size, gaps, and a go/no-go verdict in 60 seconds.
-        </p>
-      </div>
+    <div className="flex flex-1 flex-col overflow-hidden">
+      {/* Centered content */}
+      <div className="flex flex-1 flex-col items-center justify-center px-8 pb-4 min-h-0">
+        {/* V monogram */}
+        <p className="select-none text-[120px] font-bold leading-none text-[#1e1e1e]">V</p>
 
-      {/* Input box */}
-      <div
-        className="w-full rounded-xl border overflow-hidden mb-4"
-        style={{ background: "#1C1F26", borderColor: "#2A2D35" }}
-      >
-        <textarea
-          ref={textareaRef}
-          value={idea}
-          onChange={(e) => onIdeaChange(e.target.value.slice(0, MAX_CHARS))}
-          onKeyDown={handleKeyDown}
-          placeholder='Describe your startup idea in one sentence…'
-          rows={3}
-          className="w-full resize-none bg-transparent px-5 pt-4 pb-2 text-base text-white placeholder:text-[#6B7280] outline-none leading-relaxed"
-        />
-
-        {/* Toolbar */}
-        <div className="flex items-center justify-end px-4 py-3 border-t" style={{ borderColor: "#2A2D35" }}>
-          <div className="flex items-center gap-3">
-            <span
-              className="text-sm tabular-nums"
-              style={{ color: remaining < 20 ? "#EF4444" : "#6B7280" }}
-            >
-              {idea.length}/{MAX_CHARS}
-            </span>
+        {/* Suggestion chips */}
+        <div className="mt-6 grid w-full max-w-3xl grid-cols-3 gap-3">
+          {SUGGESTION_CHIPS.map((chip) => (
             <button
+              key={chip.category}
               type="button"
-              onClick={onSubmit}
-              disabled={!idea.trim()}
-              className="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
-              style={{
-                background: idea.trim() ? "#10B981" : "rgba(16,185,129,0.08)",
-                boxShadow: idea.trim() ? "0 0 18px rgba(16,185,129,0.45)" : "none",
-              }}
-              onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.background = "#059669" }}
-              onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.background = "#10B981" }}
+              onClick={() => handleChip(chip.prompt)}
+              className="flex flex-col rounded-2xl border border-[#2a2a2a] bg-transparent px-5 py-4 text-left transition hover:border-[#3a3a3a] cursor-pointer"
             >
-              <ArrowUp size={16} className="text-white" />
+              <span className="truncate text-sm font-medium text-white">{chip.title}</span>
+              <span className="mt-1 text-[10px] uppercase tracking-widest text-[#444]">{chip.category}</span>
             </button>
-          </div>
+          ))}
         </div>
       </div>
 
-      <p className="text-sm mb-10" style={{ color: "#6B7280" }}>
-        Press{" "}
-        <kbd
-          className="px-1.5 py-0.5 rounded text-xs border"
-          style={{
-            background: "rgba(255,255,255,0.05)",
-            borderColor: "#2A2D35",
-            color: "#6B7280",
-          }}
-        >
-          Enter
-        </kbd>{" "}
-        to continue to survey
-      </p>
-
-      {/* Example chips */}
-      <div className="flex flex-wrap justify-center gap-2">
-        {[
-          "An AI tool that writes cold emails for SDRs",
-          "A marketplace for freelance video editors",
-          "A Notion plugin that auto-generates weekly reports",
-        ].map((example) => (
+      {/* Pinned input bar */}
+      <div className="shrink-0 px-8 pb-6 pt-4" style={{ background: "linear-gradient(to top, #0d0d0d 80%, transparent)" }}>
+        <div className="flex min-h-[52px] items-end gap-3 rounded-full border border-[#2a2a2a] bg-[#111] py-2.5 pl-7 pr-3 sm:pl-8">
+          <textarea
+            ref={textareaRef}
+            value={idea}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Describe your startup concept..."
+            rows={1}
+            className="max-h-40 min-w-0 flex-1 resize-none border-0 bg-transparent py-2 text-sm leading-relaxed text-white outline-none ring-0 placeholder:text-[#444] focus:ring-0"
+            style={{ overflowY: "auto" }}
+          />
           <button
-            key={example}
-            onClick={() => onIdeaChange(example)}
-            className="text-sm px-3.5 py-1.5 rounded-full border transition-colors hover:border-[#10B981] hover:text-white"
-            style={{ borderColor: "#2A2D35", color: "#6B7280", background: "transparent" }}
+            type="button"
+            onClick={onSubmit}
+            disabled={!idea.trim()}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-400 text-[#0d0d0d] transition hover:bg-teal-300 disabled:opacity-30"
+            aria-label="Submit"
           >
-            {example}
+            <ArrowUp size={18} strokeWidth={2.5} />
           </button>
-        ))}
+        </div>
+        <p className="mt-2 text-center text-[11px] text-[#333]">
+          Verdict may make mistakes. Verify key claims against primary source documentation.
+        </p>
       </div>
-
     </div>
   )
 }
-
-// ─── Survey Screen ────────────────────────────────────────────────────────────
 
 function SurveyScreen({
   answers,
@@ -568,104 +373,297 @@ function SurveyScreen({
   onBack: () => void
 }) {
   return (
-    <div className="flex-1 flex flex-col px-6 py-8 max-w-2xl mx-auto w-full">
-      {/* Back link */}
-      <button
-        onClick={onBack}
-        className="flex items-center justify-center w-8 h-8 rounded-md self-start mb-6 transition-colors hover:bg-white/10"
-        style={{ color: "#9CA3AF" }}
-        title="Back"
-      >
-        <ArrowLeft size={18} />
-      </button>
-
-      {/* Heading */}
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-white mb-2">Tell us about yourself</h2>
-        <p className="text-sm" style={{ color: "#6B7280" }}>
-          We&apos;ll personalize your report based on your situation
+    <div className="flex flex-1 overflow-y-auto">
+      <div className="mx-auto w-full max-w-2xl px-8 py-12">
+        <p className="text-[11px] uppercase tracking-[0.16em] text-[#555]">
+          Diligence query
         </p>
-      </div>
+        <h2 className="mt-3 text-5xl font-bold leading-tight text-white">Where are you in the journey?</h2>
 
-      {/* Questions */}
-      <div className="w-full flex flex-col gap-6 mb-8">
-        {SURVEY_QUESTIONS.map((q) => (
-          <div key={q.key}>
-            <p className="text-sm font-medium text-white mb-3">{q.label}</p>
-            <div className="flex flex-wrap gap-2">
-              {q.options.map((opt) => {
-                const selected = answers[q.key] === opt
-                return (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => onChange(q.key, opt)}
-                    aria-pressed={selected ? "true" : "false"}
-                    className="border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981] focus-visible:ring-offset-1 focus-visible:ring-offset-black"
-                    style={{
-                      padding: "8px 16px",
-                      borderRadius: "99px",
-                      fontSize: "13px",
-                      background: selected ? "#10B981" : "#1C1F26",
-                      borderColor: selected ? "#10B981" : "#2A2D35",
-                      color: selected ? "#ffffff" : "#6B7280",
-                    }}
-                  >
-                    {opt}
-                  </button>
-                )
-              })}
-            </div>
+        <div className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-2">
+          {SURVEY_QUESTIONS[0].options.map((opt) => {
+            const selected = answers.stage === opt
+            return (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => onChange("stage", opt)}
+                className="flex items-center justify-between rounded-lg border px-4 py-3 text-left text-sm transition"
+                style={{
+                  borderColor: selected ? ACCENT : BORDER,
+                  background: selected ? "rgba(45,212,191,0.08)" : "rgba(255,255,255,0.03)",
+                  color: selected ? "#f8fafc" : TEXT_MUTED,
+                }}
+              >
+                <span>{opt}</span>
+                <span className="text-xs">{selected ? "◉" : "○"}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="mt-10">
+          <p className="mb-3 text-[11px] uppercase tracking-[0.16em] text-[#555]">
+            Technical audit
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {SURVEY_QUESTIONS[1].options.map((opt) => {
+              const selected = answers.technical === opt
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => onChange("technical", opt)}
+                  className="rounded-lg border px-4 py-2 text-sm transition"
+                  style={{
+                    borderColor: selected ? ACCENT : BORDER,
+                    background: selected ? "rgba(45,212,191,0.08)" : "rgba(255,255,255,0.03)",
+                    color: selected ? "#ffffff" : TEXT_MUTED,
+                  }}
+                >
+                  {opt}
+                </button>
+              )
+            })}
           </div>
-        ))}
+        </div>
+
+        <div className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-2">
+          {SURVEY_QUESTIONS.slice(2).map((q) => (
+            <label key={q.key} className="block">
+              <span className="mb-2 block text-[11px] uppercase tracking-[0.16em] text-[#555]">
+                {q.label}
+              </span>
+              <select
+                value={answers[q.key]}
+                onChange={(e) => onChange(q.key, e.target.value)}
+                className="w-full rounded-lg border bg-[#1a1a1a] px-3 py-2.5 text-sm text-white outline-none"
+                style={{ borderColor: BORDER }}
+              >
+                {q.options.map((opt) => (
+                  <option key={opt} value={opt} className="bg-[#1a1a1a]">
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </div>
+
+        <div className="mt-10 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-xs uppercase tracking-[0.14em] text-[#555] transition hover:text-white"
+          >
+            ← Back
+          </button>
+          <button
+            type="button"
+            onClick={onSubmit}
+            className="rounded-lg border border-[#2a2a2a] bg-white px-8 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-slate-200"
+          >
+            Continue →
+          </button>
+        </div>
       </div>
-
-      {/* Submit */}
-      <button
-        onClick={onSubmit}
-        className="w-full text-white font-semibold transition-all hover:brightness-110 active:scale-[0.98]"
-        style={{
-          background: "#10B981",
-          fontSize: "15px",
-          fontWeight: 600,
-          padding: "14px 32px",
-          borderRadius: "8px",
-        }}
-      >
-        Validate My Idea →
-      </button>
-
-      <p className="text-center mt-3 text-xs" style={{ color: "#6B7280" }}>
-        Takes about 60 seconds
-      </p>
     </div>
   )
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+function LoadingScreen({
+  step,
+  error,
+  onGoBack,
+}: {
+  step: number
+  error?: boolean
+  onGoBack?: () => void
+}) {
+  if (error) {
+    return (
+      <div className="flex flex-1 items-center justify-center px-8">
+        <div className="w-full max-w-xl rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] p-8 text-center">
+          <p className="text-2xl font-semibold text-white">Validation failed</p>
+          <p className="mt-3 text-sm text-[#555]">
+            Something went wrong while scanning your market. Please retry.
+          </p>
+          <button
+            type="button"
+            onClick={onGoBack}
+            className="mt-6 rounded-lg border border-[#2a2a2a] px-6 py-2 text-xs uppercase tracking-[0.14em] text-white transition hover:bg-white/5"
+          >
+            Go back
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const safeStep = Math.min(step, LOADING_STEPS.length - 1)
+  const progress = ((safeStep + 1) / LOADING_STEPS.length) * 100
+
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center px-8">
+      <div className="w-full max-w-3xl text-center">
+        <p className="text-[11px] uppercase tracking-[0.16em] text-[#555]">Current operation</p>
+        <h2 className="mt-3 text-balance text-3xl font-bold leading-tight text-white sm:text-4xl md:text-5xl">
+          {LOADING_STEPS[safeStep]} for your startup concept
+        </h2>
+
+        <div className="mt-8 overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] p-6 text-left sm:p-8">
+          <div className="h-1 w-full overflow-hidden rounded-full bg-[#1e1e1e]">
+            <div
+              className="h-full rounded-full bg-teal-400 transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="mt-7 grid grid-cols-1 gap-x-8 gap-y-5 md:grid-cols-2">
+            {LOADING_STEPS.map((label, i) => {
+              const done = i < step
+              const active = i === safeStep
+              return (
+                <div key={label} className="flex items-center gap-3">
+                  <span
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs"
+                    style={{
+                      borderColor: done ? ACCENT : active ? "#888" : BORDER,
+                      color: done ? ACCENT : active ? "#ffffff" : TEXT_MUTED,
+                    }}
+                  >
+                    {done ? "✓" : i + 1}
+                  </span>
+                  <span
+                    style={{
+                      color: done ? "color-mix(in srgb, #2dd4bf 55%, white)" : active ? "#ffffff" : TEXT_MUTED,
+                    }}
+                  >
+                    {label}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+          <div className="mt-8 flex flex-col gap-2 border-t border-[#2a2a2a] pt-4 text-[11px] uppercase tracking-[0.15em] text-[#555] sm:flex-row sm:items-center sm:justify-between sm:gap-0">
+            <span>Neural processing at {Math.min(99, Math.round(progress))}%</span>
+            <span>Est. completion: {Math.max(1, 20 - safeStep * 3)}s</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function HistoryScreen({
+  reports,
+  onOpen,
+  onDelete,
+  onArchiveDiscovery,
+}: {
+  reports: SavedReport[]
+  onOpen: (r: SavedReport) => void
+  onDelete: (id: string) => void
+  onArchiveDiscovery: () => void
+}) {
+  const sorted = useMemo(() => [...reports].sort((a, b) => +new Date(b.date) - +new Date(a.date)), [reports])
+  const lastUpdated = sorted[0]?.date ?? ""
+  const n = sorted.length
+
+  return (
+    <div className="flex-1 overflow-y-auto px-8 py-10">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <span className="inline-flex w-fit rounded-full border border-[#2a2a2a] bg-[#1a1a1a] px-4 py-2 text-sm font-medium text-white">
+          {n} {n === 1 ? "Archive Entry" : "Archive Entries"}
+        </span>
+        <p className="text-[11px] uppercase tracking-[0.14em] text-white">
+          Last updated:{" "}
+          <span className="text-[#555]">{lastUpdated ? formatArchiveHeaderDate(lastUpdated) : "—"}</span>
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+        {sorted.map((r) => {
+          const score = viabilityForLedgerEntry(r.report as object, r.viabilityScore)
+          return (
+            <article
+              key={r.id}
+              className="flex min-h-[280px] flex-col rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] p-5 transition-colors hover:border-[#3a3a3a]"
+            >
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <span className={`rounded-md border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] ${verdictTone(r.verdict)}`}>
+                  {r.verdict.replace("CONDITIONAL GO", "CONDITIONAL")}
+                </span>
+                <div className="shrink-0 text-right">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-[#555]">Score</p>
+                  <p className="text-xl font-bold tabular-nums leading-tight text-white">
+                    {score}
+                    <span className="text-sm font-semibold text-[#555]">/10</span>
+                  </p>
+                </div>
+              </div>
+              <h3 className="line-clamp-4 min-h-0 flex-1 text-base font-medium leading-snug text-white">{r.idea}</h3>
+              <div className="mt-6 flex items-center justify-between gap-3 border-t border-[#2a2a2a] pt-4">
+                <p className="text-[11px] uppercase tracking-[0.12em] text-[#555]">{formatDate(r.date)}</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onOpen(r)}
+                    className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#2a2a2a] bg-[#111] text-white/80 transition hover:bg-white/5 hover:text-white"
+                    aria-label="Open memo"
+                  >
+                    <ExternalLink size={16} strokeWidth={1.75} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDelete(r.id)}
+                    className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#2a2a2a] bg-[#111] text-white/55 transition hover:bg-red-500/10 hover:text-red-400"
+                    aria-label="Delete memo"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            </article>
+          )
+        })}
+
+        <button
+          type="button"
+          onClick={onArchiveDiscovery}
+          className="flex min-h-[280px] flex-col items-center justify-center gap-6 rounded-xl border-2 border-dashed border-[#2a2a2a] p-6 transition hover:border-[#3a3a3a] hover:bg-white/[0.02]"
+        >
+          <span className="flex h-14 w-14 items-center justify-center rounded-full border border-[#2a2a2a] bg-[#111] text-white/90">
+            <Plus size={26} strokeWidth={1.5} />
+          </span>
+          <span className="text-center text-[11px] font-medium uppercase tracking-[0.2em] text-white">
+            New analysis
+          </span>
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function WorkspacePage() {
   const router = useRouter()
   const [idea, setIdea] = useState("")
+  const [view, setView] = useState<WorkspaceView>("new")
   const [appState, setAppState] = useState<AppState>("empty")
   const [loadingStep, setLoadingStep] = useState(0)
   const [loadingError, setLoadingError] = useState(false)
   const [isDemoMode, setIsDemoMode] = useState(false)
   const [surveyAnswers, setSurveyAnswers] = useState<SurveyAnswers>(DEFAULT_SURVEY)
   const [savedReports, setSavedReports] = useState<SavedReport[]>([])
-  const reportsRef = useRef<HTMLDivElement>(null)
 
-  // On mount: read localStorage
   useEffect(() => {
     const demo = localStorage.getItem("isDemoMode") === "true"
     const demoIdea = localStorage.getItem("demoIdea") ?? ""
     setIsDemoMode(demo)
-    if (demo && demoIdea) {
-      setIdea(demoIdea)
-    }
-    // Load saved reports — deduplicate any legacy duplicates by idea text
+    if (demo && demoIdea) setIdea(demoIdea)
+
     try {
-      const saved = JSON.parse(localStorage.getItem("validateiq_saved_reports") || "[]")
+      const raw = localStorage.getItem("validateiq_saved_reports")
+      const saved = JSON.parse(raw || "[]")
       const seen = new Set<string>()
       const deduped = (saved as { idea: string }[]).filter((r) => {
         const key = r.idea.trim().toLowerCase()
@@ -673,9 +671,7 @@ export default function WorkspacePage() {
         seen.add(key)
         return true
       })
-      if (deduped.length !== saved.length) {
-        localStorage.setItem("validateiq_saved_reports", JSON.stringify(deduped))
-      }
+      if (deduped.length !== saved.length) localStorage.setItem("validateiq_saved_reports", JSON.stringify(deduped))
       setSavedReports(deduped as SavedReport[])
     } catch {
       setSavedReports([])
@@ -724,7 +720,6 @@ export default function WorkspacePage() {
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split("\n\n")
         buffer = lines.pop() ?? ""
@@ -732,13 +727,9 @@ export default function WorkspacePage() {
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue
           const json = JSON.parse(line.slice(6))
-          if (json.type === "progress") {
-            setLoadingStep(json.step)
-          } else if (json.type === "done") {
-            reportData = json.data
-          } else if (json.type === "error") {
-            throw new Error(json.message)
-          }
+          if (json.type === "progress") setLoadingStep(json.step)
+          else if (json.type === "done") reportData = json.data
+          else if (json.type === "error") throw new Error(json.message)
         }
       }
 
@@ -755,18 +746,12 @@ export default function WorkspacePage() {
 
   function handleSubmit() {
     if (!idea.trim()) return
-    if (isDemoMode) {
-      runValidation(idea)
-    } else {
-      setAppState("survey")
-    }
-  }
-
-  function handleSurveySubmit() {
-    runValidation(idea, surveyAnswers)
+    if (isDemoMode) runValidation(idea)
+    else setAppState("survey")
   }
 
   function handleNewValidation() {
+    setView("new")
     setIdea("")
     setAppState("empty")
     setLoadingStep(0)
@@ -790,70 +775,56 @@ export default function WorkspacePage() {
     localStorage.setItem("validateiq_saved_reports", JSON.stringify(updated))
   }
 
-  function handleStarReport(id: string) {
-    const updated = savedReports.map((r) => r.id === id ? { ...r, starred: !r.starred } : r)
-    setSavedReports(updated)
-    localStorage.setItem("validateiq_saved_reports", JSON.stringify(updated))
-  }
-
   return (
-    <div
-      className="flex min-h-screen [font-family:var(--font-inter),system-ui,sans-serif]"
-      style={{ background: "#000000" }}
-    >
-      {/* Skip to main content */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:text-white focus:text-sm focus:font-medium"
-        style={{ background: "#10B981" }}
-      >
-        Skip to main content
-      </a>
+    <div className="flex h-screen overflow-hidden bg-[#0d0d0d]">
       <Sidebar
+        activeView={view}
+        onViewChange={setView}
         onNewValidation={handleNewValidation}
         savedReports={savedReports}
         onLoadReport={handleLoadReport}
-        onDeleteReport={handleDeleteReport}
-        onStarReport={handleStarReport}
-        reportsRef={reportsRef}
+        onDelete={handleDeleteReport}
       />
 
-      {/* Main content */}
-      <div id="main-content" className="flex flex-col flex-1 ml-[280px] min-h-screen">
-        {/* Demo banner */}
-        {isDemoMode && (
-          <div className="flex items-center justify-center py-2">
-            <span
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium"
-              style={{ background: "rgba(16,185,129,0.1)", color: "#34D399", border: "1px solid rgba(16,185,129,0.2)" }}
-            >
-              <Zap size={10} />
-              Demo mode
+      <main className="flex min-h-0 flex-1 flex-col bg-[#0d0d0d]">
+        {isDemoMode && view === "new" && (
+          <div className="shrink-0 px-8 pt-4">
+            <span className="inline-flex items-center gap-2 rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] px-3 py-1 text-[11px] uppercase tracking-[0.14em] text-teal-400">
+              <Zap size={12} /> Demo mode
             </span>
           </div>
         )}
 
-        <TopBar />
-
-        {appState === "empty" && (
-          <EmptyState idea={idea} onIdeaChange={setIdea} onSubmit={handleSubmit} />
-        )}
-        {appState === "survey" && (
-          <SurveyScreen
-            answers={surveyAnswers}
-            onChange={(key, value) => setSurveyAnswers((prev) => ({ ...prev, [key]: value }))}
-            onSubmit={handleSurveySubmit}
-            onBack={() => setAppState("empty")}
+        {view === "history" ? (
+          <HistoryScreen
+            reports={savedReports}
+            onOpen={handleLoadReport}
+            onDelete={handleDeleteReport}
+            onArchiveDiscovery={handleNewValidation}
           />
+        ) : view === "research" ? (
+          <div className="flex flex-1 items-center justify-center text-sm text-[#444]">
+            Research — coming soon
+          </div>
+        ) : (
+          <>
+            {appState === "empty" && (
+              <EmptyState idea={idea} onIdeaChange={setIdea} onSubmit={handleSubmit} />
+            )}
+            {appState === "survey" && (
+              <SurveyScreen
+                answers={surveyAnswers}
+                onChange={(key, value) => setSurveyAnswers((prev) => ({ ...prev, [key]: value }))}
+                onSubmit={() => runValidation(idea, surveyAnswers)}
+                onBack={() => setAppState("empty")}
+              />
+            )}
+            {appState === "loading" && (
+              <LoadingScreen step={loadingStep} error={loadingError} onGoBack={handleNewValidation} />
+            )}
+          </>
         )}
-        {appState === "loading" && (
-          <LoadingScreen
-            step={loadingStep}
-            error={loadingError}
-            onGoBack={handleNewValidation}
-          />
-        )}
-      </div>
+      </main>
     </div>
   )
 }

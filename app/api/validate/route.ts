@@ -62,8 +62,10 @@ function stripCitations(value: unknown): unknown {
 }
 
 function extractJSON(raw: string): unknown {
+  // Strip <think>...</think> blocks from sonar-reasoning-pro
+  let cleaned = raw.replace(/<think>[\s\S]*?<\/think>/gi, "")
   // Strip markdown fences
-  let cleaned = raw
+  cleaned = cleaned
     .replace(/```json/gi, "")
     .replace(/```/g, "")
     .trim()
@@ -91,7 +93,8 @@ function extractJSON(raw: string): unknown {
 
 async function callPerplexity(
   messages: PerplexityMessage[],
-  model = "sonar-pro"
+  model = "sonar-pro",
+  max_tokens = 2000
 ): Promise<{ data: PerplexityResponse; error: null } | { data: null; error: string }> {
   const apiKey = process.env.PERPLEXITY_API_KEY
   if (!apiKey) return { data: null, error: "PERPLEXITY_API_KEY not set" }
@@ -106,7 +109,7 @@ async function callPerplexity(
       body: JSON.stringify({
         model,
         messages,
-        max_tokens: 1000,
+        max_tokens,
       }),
     })
 
@@ -147,7 +150,7 @@ function normalizeEntryScore(raw: unknown): number {
 function normalizeViabilityScore(raw: unknown): number {
   const n = typeof raw === "string" ? parseFloat(raw) : Number(raw)
   if (isNaN(n)) return 5
-  return Math.min(9, Math.max(0, Math.round(n * 10) / 10))
+  return Math.min(10, Math.max(0, Math.round(n * 10) / 10))
 }
 
 function extractUrls(citations: PerplexityCitation[]): string[] {
@@ -160,7 +163,7 @@ function buildFinalResponse(
   results: ReturnType<typeof parseSection>[],
   existingReport: Record<string, unknown> | undefined
 ) {
-  const [snapR, mktR, compR, entryR, verdictR, devilR] = results
+  const [snapR, mktR, compR, entryR, verdictR, devilR, somR] = results
 
   const entryParsed = entryR.parsed as Record<string, unknown>
   if (entryParsed && !entryParsed.error) {
@@ -170,11 +173,22 @@ function buildFinalResponse(
   const verdictParsed = verdictR.parsed as Record<string, unknown>
   if (verdictParsed && !verdictParsed.error) {
     verdictParsed.viabilityScore = normalizeViabilityScore(verdictParsed.viabilityScore)
+    const vs = verdictParsed.viabilityScore as number
+    if (typeof vs === "number") {
+      verdictParsed.verdict = vs >= 7.0 ? "GO" : vs >= 4.5 ? "CONDITIONAL GO" : "NO-GO"
+    }
   }
+
+  // Merge fresh SOM into market data (always up-to-date with founder profile)
+  const baseMarket = existingReport ? existingReport.market : mktR.parsed
+  const somParsed = somR.parsed as Record<string, unknown>
+  const market = (!somParsed.error && baseMarket && typeof baseMarket === "object")
+    ? { ...(baseMarket as Record<string, unknown>), som: somParsed.som, somMethodology: somParsed.somMethodology }
+    : baseMarket
 
   return {
     snapshot:       existingReport ? existingReport.snapshot : snapR.parsed,
-    market:         existingReport ? existingReport.market : mktR.parsed,
+    market,
     competitors:    existingReport ? existingReport.competitors : compR.parsed,
     entryScore:     entryR.parsed,
     verdict:        verdictR.parsed,
@@ -263,20 +277,32 @@ Return this exact JSON:
           {
             role: "user",
             content: `For this startup idea: "${idea}"
-Geography: ${geo}
-If this is a niche idea, identify the broader parent market (e.g. "B2B SaaS", "creator economy tools", "healthcare AI") and size the TAM from that, then narrow to SAM and SOM for this specific niche. Always provide real dollar figures with sources — never say "data unavailable". marketTiming reflects how early or late the underlying trend is.
-Return this exact JSON:
+
+Work through this step by step before producing the JSON:
+
+STEP 1 — MARKET CATEGORY: Identify the specific market category this idea belongs to. If niche, name the broader parent category (e.g. "AI-powered B2B workflow tools" not just "software"). Use this category for all sizing.
+
+STEP 2 — TAM: Find the total global market size for this category using a cited industry report or analyst source (Gartner, IBISWorld, Grand View Research, Statista, etc.). State the source and year. Provide a single dollar figure. If no exact source exists, triangulate from adjacent data and say so.
+
+STEP 3 — SAM: Narrow TAM by geography (${geo}) and by customer profile (who specifically can use this product). Explain the narrowing logic in one sentence.
+
+STEP 4 — GROWTH: Find the CAGR for this market category. Express as a percentage (e.g. "34% CAGR").
+
+STEP 5 — TIMING: Is this market Early (trend emerging, <20% adoption), Peak (mainstream, 20–60% adoption), or Late (mature, >60% adoption or declining)?
+
+Return this exact JSON with no markdown, no preamble:
 {
   "tam": string,
   "tamSource": string,
+  "tamMethodology": string,
   "sam": string,
-  "som": string,
+  "samMethodology": string,
   "growthRate": string,
   "marketTiming": "Early" | "Peak" | "Late",
   "marketTimingReason": string
 }`,
           },
-        ])
+        ], "sonar-pro", 3000)
 
     const compCall = existingReport
       ? Promise.resolve({ data: null, error: null })
@@ -285,7 +311,12 @@ Return this exact JSON:
           {
             role: "user",
             content: `For this startup idea: "${idea}"
-Find 3-5 real companies competing in this space. If there are no direct competitors, find adjacent competitors solving a related problem or serving the same customer. Include at least 3 entries — use adjacent market players if needed, and note that in their "name" field. gapStatement should explain what gap this idea fills that existing solutions miss.
+Find 3-5 real companies competing in this space. If there are no direct competitors, find adjacent competitors solving a related problem or serving the same customer. Include at least 3 entries — use adjacent market players if needed, and note that in their "name" field.
+- "funding": total capital raised (e.g. "$12M Series A") or "Bootstrapped" if no funding
+- "pricing": actual pricing tier or model (e.g. "$49/mo", "Freemium", "Enterprise only") — not vague descriptions
+- "lastActivity": most recent notable event with year (e.g. "Series B raised 2024", "Acquired by Salesforce 2023", "Launched v2 2024")
+- "gapStatement": one specific sentence naming what customer pain these solutions leave unaddressed and how this idea fills it
+
 Return this exact JSON:
 {
   "competitors": [
@@ -340,17 +371,18 @@ Return this exact JSON:
         content: `For this startup idea: "${idea}"
 ${founderCtx}
 
-Score viability using 4 dimensions, each 0-9:
+Score viability using 4 dimensions, each 0-10:
 
-- demandScore: Is there real, proven demand for this? (1-3=speculative/no evidence, 4-6=some signals, 7-9=strong evidence of demand. Reference: a todo app=3, Stripe in 2010=8)
-- founderFitScore: How well does this founder's profile match what this idea needs? (1-3=major skill/resource gaps, 4-6=workable fit, 7-9=strong match. Reference: non-technical founder building dev tools=2, developer building dev tools=8)
-- defensibilityScore: Can this build a moat over time? (1-3=easily copied, 4-6=some differentiation, 7-9=strong moat potential. Reference: generic SaaS dashboard=2, network-effect marketplace=8)
-- monetizationScore: How clear and proven is the path to revenue? (1-3=unclear how to charge, 4-6=plausible model, 7-9=clear willingness to pay. Reference: free consumer app=2, B2B workflow tool=7)
+- demandScore: Is there real, proven demand for this? (1-3=speculative/no evidence, 4-6=some signals, 7-10=strong evidence of demand. Reference: a todo app=3, Stripe in 2010=9)
+- founderFitScore: How well does this founder's profile match what this idea needs? (1-3=major skill/resource gaps, 4-6=workable fit, 7-10=strong match. Reference: non-technical founder building dev tools=2, developer building dev tools=9)
+- defensibilityScore: Can this build a moat over time? (1-3=easily copied, 4-6=some differentiation, 7-10=strong moat potential. Reference: generic SaaS dashboard=2, network-effect marketplace=9)
+- monetizationScore: How clear and proven is the path to revenue? (1-3=unclear how to charge, 4-6=plausible model, 7-10=clear willingness to pay. Reference: free consumer app=2, B2B workflow tool=8)
 
 Compute viabilityScore as the average of the 4 sub-scores, rounded to 1 decimal.
-Then decide verdict: "GO" if viabilityScore >= 7, "CONDITIONAL GO" if >= 4.5, "NO-GO" if below.
-topReasons and topRisks must be specific to THIS idea — not generic startup advice.
-nextAction = the single most important thing this founder should do in the next 7 days.
+Then decide verdict: "GO" if viabilityScore >= 7.0, "CONDITIONAL GO" if >= 4.5, "NO-GO" if below.
+topReasons: 3 specific reasons grounded in a real market dynamic, named competitor, or this founder's specific profile — not generic startup advice.
+topRisks: 3 specific risks, each ending with one concrete mitigation this founder could take.
+nextAction = the single most important thing this founder should do in the next 7 days. Be specific — name a channel, person type, or tool.
 
 Return this exact JSON:
 {
@@ -374,7 +406,13 @@ Return this exact JSON:
           {
             role: "user",
             content: `For this startup idea: "${idea}"
-Find 3 real companies that tried something similar and failed. If there are no direct matches, find companies that failed in the broader problem space or adjacent niche. Always return 3 entries — use the closest analogues available. thePattern should identify the recurring failure mode. survivalRule should be the specific thing that would make THIS idea avoid that fate.
+Find 3 real companies that tried something similar and failed. If no direct matches exist, use companies that failed in the broader problem space or adjacent niche — always return exactly 3 entries.
+- "what": one sentence on what they built and who they targeted
+- "why": the specific decision, market condition, or structural flaw that killed them — not vague ("ran out of money") but precise ("burned on enterprise sales cycles with a consumer-priced product")
+- "year": the year they shut down or pivoted away
+- "thePattern": the single recurring failure mode across all 3 — what is the common trap?
+- "survivalRule": one concrete, actionable thing THIS founder must do differently to avoid that fate
+
 Return this exact JSON:
 {
   "failures": [
@@ -391,7 +429,32 @@ Return this exact JSON:
           },
         ])
 
-    const allCalls = [snapCall, mktCall, compCall, entryCall, verdictCall, devilCall]
+    // Always runs — SOM must reflect the current founder profile even on re-runs
+    const somCall = callPerplexity([
+      { role: "system", content: systemPrompt() },
+      {
+        role: "user",
+        content: `For this startup idea: "${idea}"
+
+What is the realistic SOM (Serviceable Obtainable Market) this specific founder can capture in the first 18 months?
+
+Reason from their actual constraints:
+- Budget: ${survey.budget}
+- Stage: ${survey.stage}
+- Network: ${survey.network}
+- Geography: ${geo}
+
+Do not use a generic percentage of TAM. Derive a specific dollar figure from what this founder can realistically sell, to how many customers, at what price point. A first-time founder with under $1K budget and no network realistically captures $10K–$50K. Be honest and specific.
+
+Return this exact JSON:
+{
+  "som": string,
+  "somMethodology": string
+}`,
+      },
+    ])
+
+    const allCalls = [snapCall, mktCall, compCall, entryCall, verdictCall, devilCall, somCall]
 
     // ── Streaming path ────────────────────────────────────────────────────────
 
@@ -404,7 +467,7 @@ Return this exact JSON:
           }
 
           try {
-            const results: ReturnType<typeof parseSection>[] = new Array(6)
+            const results: ReturnType<typeof parseSection>[] = new Array(7)
             let completedCount = 0
 
             await Promise.all(

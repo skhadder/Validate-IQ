@@ -1,17 +1,13 @@
 "use client"
 
 import { motion, useInView } from "framer-motion"
-import { useRef, type ReactNode } from "react"
-import { BarChart3, Download, FileText, Gauge, Radar, Scale, TrendingUp } from "lucide-react"
+import { useRef } from "react"
+import { Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const containerVariants = {
   hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.08,
-    },
-  },
+  visible: { transition: { staggerChildren: 0.07 } },
 }
 
 const itemVariants = {
@@ -19,85 +15,34 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      duration: 0.45,
-      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-    },
+    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
   },
 }
 
-const cardBase =
-  "group rounded-xl border border-[#2A2D35] bg-[#1C1F26] p-6 transition-[transform,border-color] duration-200 ease-out hover:-translate-y-1 hover:border-[#10B981]/60"
+const cardClass =
+  "rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface-elevated)] p-6 transition-colors hover:border-[var(--landing-accent)]/35"
 
-function IconBox({ children }: { children: ReactNode }) {
-  return (
-    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg border border-[#2A2D35] bg-[#000000] text-[#6B7280] [&_svg]:h-5 [&_svg]:w-5">
-      {children}
-    </div>
-  )
-}
-
-function ThreatBadge({ level }: { level: "high" | "med" | "low" }) {
-  const styles = {
-    high: "bg-[#ef4444]/15 text-[#f87171] border-[#ef4444]/25",
-    med: "bg-[#f59e0b]/15 text-[#fbbf24] border-[#f59e0b]/25",
-    low: "bg-[#22c55e]/15 text-[#4ade80] border-[#22c55e]/25",
-  }
-  const label = { high: "High", med: "Med", low: "Low" }[level]
-  return (
-    <span
-      className={cn(
-        "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
-        styles[level],
-      )}
-    >
-      {label}
-    </span>
-  )
-}
-
-function CompetitorRadarMock() {
+function MarketSizingCard() {
   const rows = [
-    { name: "StackPilot", level: "high" as const },
-    { name: "NimbusOps", level: "med" as const },
-    { name: "LeanSync", level: "low" as const },
-    { name: "FlowDesk", level: "high" as const },
-    { name: "Orbitly", level: "med" as const },
-    { name: "PulseKit", level: "low" as const },
-  ]
-  return (
-    <div className="mt-6 grid grid-cols-2 gap-2 sm:gap-3">
-      {rows.map((row) => (
-        <div
-          key={row.name}
-          className="flex items-center justify-between gap-2 rounded-lg border border-[#2A2D35] bg-[#000000] px-2.5 py-2 sm:px-3"
-        >
-          <span className="truncate text-xs font-medium text-[#FFFFFF]">{row.name}</span>
-          <ThreatBadge level={row.level} />
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function MarketSizingMock() {
-  const bars = [
-    { label: "TAM", value: "$12.4B", width: "100%" },
-    { label: "SAM", value: "$2.1B", width: "42%" },
-    { label: "SOM", value: "$89M", width: "18%" },
+    { label: "TAM", value: "$2.5B", w: "100%" },
+    { label: "SAM", value: "$1.2B", w: "48%" },
+    { label: "SOM", value: "$154.5M", w: "28%" },
   ]
   return (
     <div className="mt-6 space-y-4">
-      {bars.map((b) => (
-        <div key={b.label}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--landing-muted)]">
+        01 / Market analysis · Market sizing
+      </p>
+      {rows.map((r) => (
+        <div key={r.label}>
           <div className="mb-1.5 flex items-center justify-between text-xs">
-            <span className="font-medium text-[#6B7280]">{b.label}</span>
-            <span className="tabular-nums text-[#FFFFFF]">{b.value}</span>
+            <span className="font-medium text-slate-400">{r.label}</span>
+            <span className="tabular-nums text-white">{r.value}</span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-[#000000]">
+          <div className="h-2 overflow-hidden rounded-sm bg-[var(--landing-bg)]">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#059669] to-[#34D399] transition-all duration-500"
-              style={{ width: b.width }}
+              className="h-full rounded-sm bg-slate-500/80 transition-all"
+              style={{ width: r.w }}
             />
           </div>
         </div>
@@ -106,128 +51,130 @@ function MarketSizingMock() {
   )
 }
 
-function GapScoreMock() {
-  const pct = 72
-  const r = 36
-  const c = 2 * Math.PI * r
-  const offset = c * (1 - pct / 100)
+function SynthesisCard() {
   return (
-    <div className="mt-6 flex items-center justify-center">
-      <div className="relative flex h-28 w-28 items-center justify-center">
-        <svg className="h-full w-full -rotate-90" viewBox="0 0 88 88">
-          <circle cx="44" cy="44" fill="none" r={r} stroke="#2A2D35" strokeWidth="8" />
-          <circle
-            cx="44"
-            cy="44"
-            fill="none"
-            r={r}
-            stroke="#059669"
-            strokeDasharray={c}
-            strokeDashoffset={offset}
-            strokeLinecap="round"
-            strokeWidth="8"
-            className="transition-all duration-700"
+    <div className="mt-6 space-y-5">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--landing-muted)]">
+        02 / Executive summary · Synthesis
+      </p>
+      <div>
+        <div className="mb-2 flex items-center justify-between text-xs">
+          <span className="text-slate-400">Execution velocity</span>
+          <span className="tabular-nums font-semibold text-[var(--landing-accent)]">93</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-[var(--landing-bg)]">
+          <div className="h-full w-[93%] rounded-full bg-[var(--landing-accent)]" />
+        </div>
+      </div>
+      <div>
+        <div className="mb-2 flex items-center justify-between text-xs">
+          <span className="text-slate-400">Capital efficiency</span>
+          <span className="tabular-nums text-[var(--landing-warm)]">200% / 20.9%</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-[var(--landing-bg)]">
+          <div
+            className="h-full w-[62%] rounded-full bg-[var(--landing-warm)] opacity-90"
           />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-semibold tabular-nums text-white">72</span>
-          <span className="text-[10px] uppercase tracking-wider text-[#52525b]">/ 100</span>
         </div>
       </div>
     </div>
   )
 }
 
-function VerdictMock() {
+function CompetitorCard() {
+  const rows = [
+    { name: "Acron Corp", tag: "Series B", tagClass: "border-[var(--landing-accent)]/40 text-[var(--landing-accent)]" },
+    { name: "Globus Labs", tag: "Public", tagClass: "border-slate-500 text-slate-400" },
+    { name: "Slash Systems", tag: "Seed", tagClass: "border-[var(--landing-warm)]/50 text-[var(--landing-warm)]" },
+  ]
   return (
     <div className="mt-6 space-y-3">
-      <span className="inline-flex items-center rounded-md border border-[#22c55e]/35 bg-[#22c55e]/10 px-3 py-1.5 text-sm font-bold tracking-wide text-[#22c55e]">
-        GO
-      </span>
-      <p className="text-xs leading-relaxed text-[#6B7280]">
-        Strong pull from SMBs; differentiation is clear vs. incumbents — proceed with a focused MVP.
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--landing-muted)]">
+        03 / Ecosystem · Competitor intel
+      </p>
+      {rows.map((r) => (
+        <div
+          key={r.name}
+          className="flex items-center justify-between gap-2 rounded-lg border border-[var(--landing-border)] bg-[var(--landing-bg)]/60 px-3 py-2.5"
+        >
+          <span className="truncate text-sm font-medium text-white">{r.name}</span>
+          <span
+            className={cn(
+              "shrink-0 rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+              r.tagClass,
+            )}
+          >
+            {r.tag}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function DevilsAdvocateCard() {
+  return (
+    <div className="mt-6">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--landing-muted)]">
+        04 / Risk mitigation · Devil&apos;s advocate
+      </p>
+      <p className="mt-4 text-sm leading-relaxed text-slate-400">
+        Regulatory shifts in data residency could extend sales cycles. Cap table concentration may limit option pool
+        refresh — model dilution before Series A conversations.
       </p>
     </div>
   )
 }
 
-function TrendPulseMock() {
+function IcpCard() {
   return (
     <div className="mt-6">
-      <svg viewBox="0 0 120 48" className="h-20 w-full" aria-hidden>
-        <line x1="0" y1="40" x2="120" y2="40" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
-        <line x1="8" y1="4" x2="8" y2="40" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
-        <polyline
-          fill="none"
-          points="8,32 28,28 48,30 68,18 88,14 108,10"
-          stroke="#059669"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <polyline
-          fill="none"
-          points="8,36 28,34 48,22 68,26 88,20 108,24"
-          stroke="#34D399"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={0.85}
-        />
-      </svg>
-      <div className="mt-1 flex justify-between text-[10px] text-[#6B7280]">
-        <span>Search</span>
-        <span>Funding</span>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--landing-muted)]">
+        05 / Audience · Substitutes &amp; ICP
+      </p>
+      <div className="mt-5 flex items-center gap-2">
+        <div className="flex -space-x-2">
+          {[0, 1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[var(--landing-surface-elevated)] bg-gradient-to-br from-slate-600 to-slate-800 text-[10px] font-bold text-white"
+            >
+              {String.fromCharCode(65 + i)}
+            </div>
+          ))}
+        </div>
+        <span className="flex h-9 min-w-[2.25rem] items-center justify-center rounded-full border border-[var(--landing-border)] bg-[var(--landing-bg)] text-xs font-semibold text-[var(--landing-muted)]">
+          +22
+        </span>
+        <Users className="ml-auto h-5 w-5 text-[var(--landing-muted)]" aria-hidden />
       </div>
-    </div>
-  )
-}
-
-function ExportMock() {
-  return (
-    <div className="mt-6 rounded-lg border border-[#2A2D35] bg-[#000000] p-4">
-      <div className="mb-3 flex items-center gap-2 border-b border-[#2A2D35] pb-2">
-        <FileText className="h-4 w-4 text-[#059669]" strokeWidth={1.5} />
-        <span className="text-xs font-medium text-[#FFFFFF]">Validation_Report.pdf</span>
-      </div>
-      <div className="mb-4 space-y-1.5">
-        <div className="h-1.5 w-full rounded bg-[rgba(255,255,255,0.08)]" />
-        <div className="h-1.5 w-[80%] rounded bg-[rgba(255,255,255,0.06)]" />
-        <div className="h-1.5 w-[55%] rounded bg-[rgba(255,255,255,0.05)]" />
-      </div>
-      <button
-        type="button"
-        className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#059669]/40 bg-[#059669]/15 py-2 text-xs font-medium text-[#34D399] transition-colors hover:bg-[#059669]/25"
-      >
-        <Download className="h-3.5 w-3.5" strokeWidth={2} />
-        Download PDF
-      </button>
     </div>
   )
 }
 
 export function BentoGrid() {
   const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px" })
+  const isInView = useInView(ref, { once: true, margin: "-80px" })
 
   return (
     <section
       ref={ref}
-      id="features"
-      className="bg-[#000000] px-4 pt-8 pb-24 [font-family:var(--font-inter),system-ui,sans-serif]"
+      id="product"
+      className="bg-[var(--landing-bg)] px-4 pb-20 pt-4 sm:px-6 lg:px-8"
+      style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}
     >
       <div className="mx-auto max-w-6xl">
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-14 text-center"
+          className="mb-12 text-center"
         >
-          <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-            Everything you need to decide in 60 seconds.
+          <h2 className="font-heading text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            The memo, decomposed.
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-[#6B7280] sm:text-lg">
-            Not a chatbot. Not a template. A structured intelligence report — built for people who ship.
+          <p className="mx-auto mt-3 max-w-xl text-sm text-[var(--landing-muted)] sm:text-base">
+            Every run produces structured sections you can defend in a room — not a wall of chat.
           </p>
         </motion.div>
 
@@ -235,78 +182,47 @@ export function BentoGrid() {
           variants={containerVariants}
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
-          className="grid grid-cols-1 gap-4 lg:grid-cols-4"
+          className="grid grid-cols-1 gap-4 lg:grid-cols-2"
         >
-          {/* Row 1 — large cards */}
-          <motion.article variants={itemVariants} className={cn(cardBase, "lg:col-span-2")}>
-            <IconBox>
-              <Radar strokeWidth={1.5} />
-            </IconBox>
-            <h3 className="text-lg font-semibold text-white sm:text-xl">Competitor Radar</h3>
-            <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
-              Instantly surface who&apos;s in the space, what they charge, and where they&apos;re weak. Know your
-              battlefield before you write a line of code.
+          <motion.article variants={itemVariants} className={cardClass}>
+            <h3 className="text-lg font-semibold text-white">Market sizing</h3>
+            <p className="mt-1 text-sm text-[var(--landing-muted)]">
+              TAM, SAM, SOM with cited ranges — sized before you commit engineering time.
             </p>
-            <CompetitorRadarMock />
+            <MarketSizingCard />
           </motion.article>
 
-          <motion.article variants={itemVariants} className={cn(cardBase, "lg:col-span-2")}>
-            <IconBox>
-              <BarChart3 strokeWidth={1.5} />
-            </IconBox>
-            <h3 className="text-lg font-semibold text-white sm:text-xl">Market Sizing Engine</h3>
-            <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
-              TAM, SAM, SOM — in plain English, not consultant-speak. See if the opportunity is worth chasing before
-              you build.
+          <motion.article variants={itemVariants} className={cardClass}>
+            <h3 className="text-lg font-semibold text-white">Executive synthesis</h3>
+            <p className="mt-1 text-sm text-[var(--landing-muted)]">
+              Compressed signals: momentum, efficiency, and where the story breaks.
             </p>
-            <MarketSizingMock />
+            <SynthesisCard />
+          </motion.article>
+        </motion.div>
+
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate={isInView ? "visible" : "hidden"}
+          className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3"
+        >
+          <motion.article variants={itemVariants} className={cardClass}>
+            <h3 className="text-lg font-semibold text-white">Competitor intel</h3>
+            <p className="mt-1 text-sm text-[var(--landing-muted)]">Who raised, who&apos;s quiet, who&apos;s eating your lunch.</p>
+            <CompetitorCard />
           </motion.article>
 
-          {/* Row 2 — small cards */}
-          <motion.article variants={itemVariants} className={cardBase}>
-            <IconBox>
-              <Gauge strokeWidth={1.5} />
-            </IconBox>
-            <h3 className="text-lg font-semibold text-white">
-              Gap Score<sup className="text-xs text-[#059669]">™</sup>
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
-              A 0–10 signal showing how much unmet demand exists. The higher, the bigger your opening.
-            </p>
-            <GapScoreMock />
+          <motion.article variants={itemVariants} className={cardClass}>
+            <h3 className="text-lg font-semibold text-white">Devil&apos;s advocate</h3>
+            <p className="mt-1 text-sm text-[var(--landing-muted)]">Failure patterns and structural risks in your space.</p>
+            <DevilsAdvocateCard />
           </motion.article>
 
-          <motion.article variants={itemVariants} className={cardBase}>
-            <IconBox>
-              <Scale strokeWidth={1.5} />
-            </IconBox>
-            <h3 className="text-lg font-semibold text-white">Go / No-Go Verdict</h3>
-            <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
-              A direct call — Go, Pivot, or No-Go — with a one-paragraph rationale you can paste into your pitch deck.
-            </p>
-            <VerdictMock />
-          </motion.article>
-
-          <motion.article variants={itemVariants} className={cardBase}>
-            <IconBox>
-              <TrendingUp strokeWidth={1.5} />
-            </IconBox>
-            <h3 className="text-lg font-semibold text-white">Trend Pulse</h3>
-            <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
-              See if your idea is riding a wave or dying one. Search trends + VC funding signals, overlaid.
-            </p>
-            <TrendPulseMock />
-          </motion.article>
-
-          <motion.article variants={itemVariants} className={cardBase}>
-            <IconBox>
-              <Download strokeWidth={1.5} />
-            </IconBox>
-            <h3 className="text-lg font-semibold text-white">One-Click Export</h3>
-            <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
-              Download a clean PDF report. Drop it in your deck. Use it as your founding brief.
-            </p>
-            <ExportMock />
+          <motion.article variants={itemVariants} className={cardClass}>
+            <h3 className="text-lg font-semibold text-white">Substitutes &amp; ICP</h3>
+            <p className="mt-1 text-sm text-[var(--landing-muted)]">Who pays, what they use today, and good-enough alternatives.</p>
+            <IcpCard />
           </motion.article>
         </motion.div>
       </div>

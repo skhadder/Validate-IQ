@@ -70,7 +70,7 @@
   },
   "verdict": {
     "verdict": "CONDITIONAL GO",
-    "viabilityScore": 7,
+    "viabilityScore": 7.8,
     "topReasons": [
       "The market timing is early and favorable — founders are actively looking for AI-powered research tools and willing to pay, but no category winner has emerged yet.",
       "The unit economics are strong — Perplexity API costs are low, CAC can be near-zero via community distribution, and a $12–$39/month SaaS price point gives healthy margins.",

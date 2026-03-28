@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowUp, ArrowLeft, Home } from "lucide-react"
+import { ArrowUp, ArrowLeft, MoreHorizontal, Printer, Share2 } from "lucide-react"
 import { toast } from "sonner"
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
+import { viabilityWhenSaving } from "@/lib/viability-score"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,8 +19,11 @@ interface ReportData {
   market: {
     tam: string
     tamSource: string
+    tamMethodology: string
     sam: string
+    samMethodology: string
     som: string
+    somMethodology: string
     growthRate: string
     marketTiming: "Early" | "Peak" | "Late"
     marketTimingReason: string
@@ -126,8 +130,8 @@ function renderMarkdown(text: string): React.ReactNode {
         if (trimmed.startsWith("- ")) {
           return (
             <div key={i} style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
-              <span style={{ color: "#10B981", fontSize: 10, marginTop: 2, flexShrink: 0 }}>●</span>
-              <span style={{ color: "#9CA3AF", fontSize: 12, lineHeight: 1.5 }}>{renderInline(trimmed.slice(2))}</span>
+              <span style={{ color: "var(--report-accent)", fontSize: 10, marginTop: 2, flexShrink: 0 }}>●</span>
+              <span style={{ color: "var(--report-body)", fontSize: 12, lineHeight: 1.5 }}>{renderInline(trimmed.slice(2))}</span>
             </div>
           )
         }
@@ -139,10 +143,10 @@ function renderMarkdown(text: string): React.ReactNode {
               marginTop: 2,
               padding: "5px 8px",
               borderRadius: 6,
-              background: "#111318",
-              border: "1px solid #2A2D35",
+              background: "var(--report-elevated)",
+              border: "1px solid var(--report-border)",
               fontSize: 11,
-              color: "#34D399",
+              color: "var(--report-orange)",
               lineHeight: 1.5,
             }}>
               {renderInline(trimmed)}
@@ -152,7 +156,7 @@ function renderMarkdown(text: string): React.ReactNode {
 
         // Normal / bold heading line
         return (
-          <p key={i} style={{ margin: 0, fontSize: 12, lineHeight: 1.55, color: "#9CA3AF" }}>
+          <p key={i} style={{ margin: 0, fontSize: 12, lineHeight: 1.55, color: "var(--report-body)" }}>
             {renderInline(trimmed)}
           </p>
         )
@@ -181,29 +185,30 @@ function buildTrendData(growthRate: string, timing: string) {
 
 function TrendChart({ growthRate, timing }: { growthRate: string; timing: string }) {
   const data = buildTrendData(growthRate, timing)
-  const color = timing === "Early" ? "#60A5FA" : timing === "Peak" ? "#FCD34D" : "#F87171"
+  const gradId = useId().replace(/:/g, "")
+  // Teal = growth / early; amber = mature peak; slate = late — avoids “error” red for positive memos
+  const color =
+    timing === "Early" ? "#14b8a6" : timing === "Peak" ? "#f59e0b" : "#94a3b8"
   return (
-    <div>
-      <p className="uppercase tracking-wide mb-2" style={{ fontSize: "12px", fontWeight: 500, color: "#6B7280" }}>
-        Market trend
-      </p>
+    <div className="mt-4">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#555]">Market trend</p>
       <ResponsiveContainer width="100%" height={100}>
         <AreaChart data={data} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
           <defs>
-            <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={color} stopOpacity={0.25} />
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={color} stopOpacity={0.22} />
               <stop offset="95%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <XAxis dataKey="year" tick={{ fontSize: 10, fill: "#4B5563" }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 10, fill: "#4B5563" }} axisLine={false} tickLine={false} />
+          <XAxis dataKey="year" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
           <Tooltip
-            contentStyle={{ background: "#1C1F26", border: "1px solid #2A2D35", borderRadius: 6, fontSize: 11 }}
-            labelStyle={{ color: "#9CA3AF" }}
+            contentStyle={{ background: "#111", border: "1px solid #1e1e1e", borderRadius: 6, fontSize: 11 }}
+            labelStyle={{ color: "#aaa" }}
             itemStyle={{ color }}
             formatter={(v: number) => [`${v}`, "Index"]}
           />
-          <Area type="monotone" dataKey="value" stroke={color} strokeWidth={2} fill="url(#trendGrad)" dot={false} />
+          <Area type="monotone" dataKey="value" stroke={color} strokeWidth={2} fill={`url(#${gradId})`} dot={false} />
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -238,7 +243,7 @@ function extractMarketValue(val: string): string {
 
 function useCountUp(target: number, duration = 1000) {
   const [val, setVal] = useState(0)
-  const rafRef = useRef<number>()
+  const rafRef = useRef<number | undefined>(undefined)
   useEffect(() => {
     let start: number | null = null
     const animate = (ts: number) => {
@@ -256,24 +261,11 @@ function useCountUp(target: number, duration = 1000) {
 
 // ─── Score helpers ────────────────────────────────────────────────────────────
 
-// viabilityScore is 0-9; entryScore is 0-10
+// viabilityScore is 0–10; entryScore is 0–10
 function safeScore(raw: unknown): number {
   const n = typeof raw === "string" ? parseFloat(raw) : Number(raw)
   if (isNaN(n)) return 5
   return Math.round(n * 10) / 10
-}
-
-// Viability: out of 9
-function getVerdict(score: number): string {
-  if (score >= 7) return "GO"
-  if (score >= 4.5) return "CONDITIONAL GO"
-  return "NO-GO"
-}
-
-function getVerdictColors(score: number) {
-  if (score >= 7) return { bg: "#052E16", color: "#4ADE80", border: "1px solid #16A34A" }
-  if (score >= 4.5) return { bg: "#1C1007", color: "#FCD34D", border: "1px solid #92400E" }
-  return { bg: "#1C0507", color: "#F87171", border: "1px solid #991B1B" }
 }
 
 // Entry: out of 10
@@ -285,42 +277,15 @@ function getBarrierLevel(score: number): string {
 }
 
 function getBarrierColors(score: number) {
-  if (score >= 8) return { bg: "#052E16", color: "#4ADE80", border: "#16A34A" }
-  if (score >= 6) return { bg: "#1C1007", color: "#FCD34D", border: "#92400E" }
-  return { bg: "#1C0507", color: "#F87171", border: "#991B1B" }
+  if (score >= 8)
+    return { bg: "rgba(20,184,166,0.1)", color: "var(--landing-accent)", border: "rgba(20,184,166,0.3)", bar: "var(--landing-accent)" }
+  if (score >= 6)
+    return { bg: "rgba(251,191,36,0.1)", color: "#fbbf24", border: "rgba(251,191,36,0.3)", bar: "#fbbf24" }
+  return { bg: "rgba(230,57,70,0.12)", color: "var(--report-accent-bright)", border: "rgba(230,57,70,0.3)", bar: "var(--report-accent-bright)" }
 }
 
 
 // ─── Small shared components ──────────────────────────────────────────────────
-
-function ConfidenceBadge({ level }: { level: string }) {
-  const styles =
-    level === "High"
-      ? { color: "#4ADE80", background: "#052E16", border: "0.5px solid #166534" }
-      : level === "Medium"
-      ? { color: "#FCD34D", background: "#1C1007", border: "0.5px solid #92400E" }
-      : { color: "#F87171", background: "#1C0507", border: "0.5px solid #991B1B" }
-  return (
-    <span className="px-2 py-0.5 rounded-full font-semibold" style={{ fontSize: "10px", ...styles }}>
-      {level} confidence
-    </span>
-  )
-}
-
-function EditButton({ onClick, expanded }: { onClick?: () => void; expanded?: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-expanded={expanded}
-      aria-haspopup="listbox"
-      className="rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]"
-      style={{ fontSize: "10px", color: "#6B7280", borderColor: "#2A2D35", background: "transparent", padding: "3px 10px" }}
-    >
-      Edit
-    </button>
-  )
-}
 
 function Dot({ color }: { color: string }) {
   return (
@@ -331,79 +296,63 @@ function Dot({ color }: { color: string }) {
   )
 }
 
-// ─── Summary Card ─────────────────────────────────────────────────────────────
+// ─── Memo hero (dossier-style) ────────────────────────────────────────────────
 
-function SummaryCard({ verdict, entryScore }: { verdict: ReportData["verdict"]; entryScore: ReportData["entryScore"] }) {
+function ReportHero({
+  snapshot,
+  verdict,
+  onViewCitations,
+  reportDateStr,
+}: {
+  snapshot: ReportData["snapshot"]
+  verdict: ReportData["verdict"]
+  onViewCitations: () => void
+  reportDateStr: string
+}) {
   const viabilityScore = safeScore(verdict.viabilityScore)
-  const entryScoreNum = safeScore(entryScore.entryScore)
-  const vc = getVerdictColors(viabilityScore)
-  const bc = getBarrierColors(entryScoreNum)
-
-  const animViability = useCountUp(viabilityScore)
-  const animEntry = useCountUp(entryScoreNum)
-
-  const [barReady, setBarReady] = useState(false)
-  useEffect(() => {
-    const t = setTimeout(() => setBarReady(true), 80)
-    return () => clearTimeout(t)
-  }, [])
+  const animScore = useCountUp(viabilityScore, 900)
+  const verdictText = typeof verdict.verdict === "string" ? verdict.verdict.trim() : ""
+  const verdictBadgeClass =
+    verdictText === "GO"
+      ? "rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-teal-400 bg-teal-500/10 border border-teal-500/30"
+      : verdictText === "CONDITIONAL GO"
+        ? "rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-amber-400 bg-amber-500/10 border border-amber-500/30"
+        : verdictText
+          ? "rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-red-400 bg-red-500/10 border border-red-500/30"
+          : ""
 
   return (
-    <div
-      className="rounded-lg border flex flex-col"
-      style={{ background: "#1C1F26", borderColor: "#2A2D35", borderWidth: "0.5px", padding: "16px 18px", marginBottom: "12px" }}
-    >
-      <div className="flex items-start flex-wrap mb-3">
-        {/* Verdict */}
-        <div className="flex flex-col mr-6 mb-4">
-          <span className="uppercase mb-1" style={{ fontSize: "10px", fontWeight: 500, color: "#6B7280", letterSpacing: "0.06em" }}>Verdict</span>
-          <span
-            role="status"
-            aria-label={`Verdict: ${getVerdict(viabilityScore)}`}
-            className="px-3 py-1 rounded-md self-start uppercase tracking-wide"
-            style={{ fontSize: "14px", fontWeight: 700, color: vc.color, background: vc.bg, border: vc.border }}
-          >
-            {getVerdict(viabilityScore)}
+    <div className="rounded-2xl border border-[#1e1e1e] bg-[#111] p-6 mb-4 print:break-inside-avoid">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
+        {verdictText ? (
+          <span role="status" className={`min-w-[7.5rem] self-start text-center ${verdictBadgeClass}`}>
+            {verdictText}
           </span>
-        </div>
-        {/* Viability Score */}
-        <div className="flex flex-col mr-6 mb-4">
-          <span className="uppercase mb-1" style={{ fontSize: "10px", fontWeight: 500, color: "#6B7280", letterSpacing: "0.06em" }}>Viability Score</span>
-          <span className="mb-1" style={{ fontSize: "36px", fontWeight: 700, lineHeight: 1, color: vc.color, display: "block" }}>
-            {animViability}<span style={{ fontSize: "16px", fontWeight: 400, color: "#64748B" }}>/9</span>
-          </span>
-          <div className="w-24 rounded-full mt-1" style={{ height: "6px", background: "#2A2D35", borderRadius: "99px" }}>
-            <div style={{ width: barReady ? `${(viabilityScore / 9) * 100}%` : "0%", height: "100%", borderRadius: "99px", background: vc.color, transition: "width 1s cubic-bezier(0.4,0,0.2,1)" }} />
-          </div>
-          <div className="flex justify-between w-24">
-            <span style={{ fontSize: "8px", color: "#6B7280" }}>Low</span>
-            <span style={{ fontSize: "8px", color: "#6B7280" }}>High</span>
-          </div>
-        </div>
-        {/* Entry Score */}
-        <div className="flex flex-col mb-4">
-          <span className="uppercase mb-1" style={{ fontSize: "10px", fontWeight: 500, color: "#6B7280", letterSpacing: "0.06em" }}>Entry Score</span>
-          <span className="mb-1" style={{ fontSize: "36px", fontWeight: 700, lineHeight: 1, color: bc.color, display: "block" }}>
-            {animEntry}<span style={{ fontSize: "16px", fontWeight: 400, color: "#64748B" }}>/10</span>
-          </span>
-          <div className="w-24 rounded-full mt-1" style={{ height: "6px", background: "#2A2D35", borderRadius: "99px" }}>
-            <div style={{ width: barReady ? `${(entryScoreNum / 10) * 100}%` : "0%", height: "100%", borderRadius: "99px", background: bc.color, transition: "width 1s cubic-bezier(0.4,0,0.2,1)" }} />
-          </div>
-          <div className="flex justify-between w-24">
-            <span style={{ fontSize: "8px", color: "#6B7280" }}>Low</span>
-            <span style={{ fontSize: "8px", color: "#6B7280" }}>High</span>
-          </div>
+        ) : null}
+        <div className="text-right">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#555]">Viability score</p>
+          <p className="text-3xl font-bold tabular-nums leading-none text-white md:text-4xl">
+            {(Math.round(animScore * 10) / 10).toFixed(1)}
+            <span className="text-xl font-semibold text-[#555] md:text-2xl">/10</span>
+          </p>
         </div>
       </div>
-      {verdict.nextAction && (
-        <>
-          <div className="h-px w-full" style={{ background: "#2A2D35" }} />
-          <p style={{ fontSize: "12px", lineHeight: "1.65", color: "#9CA3AF" }}>
-            <span style={{ color: "#10B981", fontWeight: 600 }}>→ Next: </span>
-            {verdict.nextAction}
-          </p>
-        </>
+      <h1 className="mb-4 max-w-xl text-2xl font-bold leading-snug text-white">{snapshot.oneLiner}</h1>
+      {verdict.topReasons?.[0] && (
+        <p className="mb-5 text-[15px] leading-relaxed text-[#aaa]">{verdict.topReasons[0]}</p>
       )}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#1e1e1e] bg-[#0d0d0d] px-3 py-2.5">
+        <span className="text-[11px] leading-snug text-[#555]">
+          Sources cited in memo · {reportDateStr}
+        </span>
+        <button
+          type="button"
+          onClick={onViewCitations}
+          className="shrink-0 text-[11px] font-bold uppercase tracking-[0.12em] text-teal-400 transition hover:opacity-90"
+        >
+          View citations
+        </button>
+      </div>
     </div>
   )
 }
@@ -428,52 +377,36 @@ function IdeaProfileTab({
     { label: "Geography", key: "geography" },
   ]
 
-  return (
-    <div className="px-3 py-2 flex-1 overflow-y-auto">
-      <p className="uppercase mb-3" style={{ fontSize: "11px", fontWeight: 600, color: "#6B7280", letterSpacing: "0.08em" }}>
-        Your founder profile
-      </p>
-      <div className="flex flex-col gap-1.5">
-        {rows.map(({ label, key }) => (
-          <div key={key} className="flex flex-col gap-1">
-            <div
-              className="flex items-center justify-between rounded-lg px-3 py-2.5 border"
-              style={{
-                background: "#1C1F26",
-                borderColor: openField === key ? "#10B981" : "#2A2D35",
-              }}
-            >
-              <span className="shrink-0 mr-3" style={{ fontSize: "12px", color: "#6B7280" }}>
-                {label}
-              </span>
-              <span className="font-semibold text-white flex-1 truncate mr-2" style={{ fontSize: "15px" }}>
-                {survey[key]}
-              </span>
-              <EditButton
-                onClick={() => setOpenField(openField === key ? null : key)}
-                expanded={openField === key}
-              />
-            </div>
+  const initials =
+    `${survey.stage?.[0] ?? "?"}${survey.geography?.[0] ?? "?"}`.toUpperCase()
 
+  return (
+    <div className="flex-1 overflow-y-auto px-4 py-4">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#444]">YOUR FOUNDER PROFILE</p>
+      <div className="flex flex-col divide-y divide-[#1a1a1a]">
+        {rows.map(({ label, key }) => (
+          <div key={key} className="flex flex-col">
+            <button
+              type="button"
+              onClick={() => setOpenField(openField === key ? null : key)}
+              className="flex items-center justify-between py-2 text-left"
+            >
+              <span className="text-[10px] uppercase tracking-widest text-[#444] w-20 shrink-0">{label}</span>
+              <span className="flex-1 truncate text-xs font-semibold text-white">{survey[key]}</span>
+              <span className="ml-2 text-[10px] text-[#333]">{openField === key ? "▲" : "▼"}</span>
+            </button>
             {openField === key && (
-              <div
-                className="rounded-md border p-2 flex flex-wrap gap-1"
-                style={{ background: "#111318", borderColor: "#2A2D35" }}
-              >
+              <div className="flex flex-wrap gap-1 pb-2">
                 {SURVEY_OPTIONS[key].map((opt) => (
                   <button
                     key={opt}
                     type="button"
-                    onClick={() => {
-                      setOpenField(null)
-                      onFieldSelect(key, opt)
-                    }}
-                    className="rounded-full border px-3 py-1 transition-colors text-left"
+                    onClick={() => { setOpenField(null); onFieldSelect(key, opt) }}
+                    className="rounded-full border px-2.5 py-0.5 text-[11px] transition-colors"
                     style={{
-                      fontSize: "12px",
-                      background: survey[key] === opt ? "#10B981" : "transparent",
-                      borderColor: survey[key] === opt ? "#10B981" : "#2A2D35",
-                      color: survey[key] === opt ? "#ffffff" : "#9CA3AF",
+                      background: survey[key] === opt ? "var(--report-accent)" : "transparent",
+                      borderColor: survey[key] === opt ? "var(--report-accent)" : "var(--report-border)",
+                      color: survey[key] === opt ? "#ffffff" : "var(--report-body)",
                     }}
                   >
                     {opt}
@@ -483,6 +416,16 @@ function IdeaProfileTab({
             )}
           </div>
         ))}
+      </div>
+
+      <div className="mt-3 flex items-center gap-2.5 border-t border-[#1a1a1a] pt-3">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#1e1e1e] text-xs font-semibold text-white">
+          A
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-white">Analyst</p>
+          <p className="text-[10px] text-[#444]">Standard Tier</p>
+        </div>
       </div>
     </div>
   )
@@ -530,14 +473,12 @@ function SourcesTab({ report }: { report: ReportData }) {
 
   if (allSources.length === 0) {
     return (
-      <div className="px-3 py-4 text-[11px]" style={{ color: "#6B7280" }}>
-        No sources available for this report.
-      </div>
+      <div className="px-4 py-4 text-[11px] text-[#555]">No sources available for this report.</div>
     )
   }
 
   return (
-    <div className="px-3 py-2 flex-1 overflow-y-auto flex flex-col gap-3">
+    <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
       {allSources.map((s, i) => {
         let domain = s.url
         try { domain = new URL(s.url).hostname } catch {}
@@ -547,7 +488,7 @@ function SourcesTab({ report }: { report: ReportData }) {
             <div className="flex items-center gap-1.5">
               <span
                 className="text-[9px] font-bold rounded px-1 py-0.5 shrink-0"
-                style={{ background: "rgba(5,150,105,0.15)", color: "#34D399" }}
+                style={{ background: "var(--report-accent-dim)", color: "var(--report-orange)" }}
               >
                 [{i + 1}]
               </span>
@@ -558,13 +499,13 @@ function SourcesTab({ report }: { report: ReportData }) {
               target="_blank"
               rel="noopener noreferrer"
               className="text-[10px] hover:underline pl-6"
-              style={{ color: "#34D399" }}
+              style={{ color: "var(--report-orange)" }}
             >
               {truncatedUrl}
             </a>
             <span
               className="text-[9px] px-1.5 py-0.5 rounded self-start ml-6"
-              style={{ background: "rgba(5,150,105,0.1)", color: "#34D399" }}
+              style={{ background: "var(--report-accent-dim)", color: "var(--report-orange)" }}
             >
               {s.section}
             </span>
@@ -590,8 +531,8 @@ function Chatbot({
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(false)
-  const [chatHeight, setChatHeight] = useState(200)
-  const chatHeightRef = useRef(200)
+  const [chatHeight, setChatHeight] = useState(80)
+  const chatHeightRef = useRef(80)
   const scrollRef = useRef<HTMLDivElement>(null)
   const chatScrollRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{ startY: number; startHeight: number } | null>(null)
@@ -634,7 +575,7 @@ function Chatbot({
   const SUGGESTIONS = [
     "Why this score?",
     "Biggest risk to fix",
-    "How do I get first customers?",
+    "Compare with Segment Median",
   ]
 
   useEffect(() => {
@@ -673,115 +614,95 @@ function Chatbot({
   }
 
   return (
-    <div className="border-t flex flex-col gap-2" style={{ borderColor: "#2A2D35" }}>
-      {/* Drag handle */}
+    <div className="flex shrink-0 flex-col border-t border-[#1e1e1e] px-4 pb-4 pt-4">
       <div
         onMouseDown={onDragStart}
-        className="flex flex-col items-center justify-center gap-1 py-2 cursor-ns-resize select-none hover:bg-[#1C1F26] transition-colors"
-        style={{ borderBottom: "1px solid #2A2D35" }}
+        className="flex cursor-ns-resize select-none items-center justify-center border-b border-[#1a1a1a] py-2 transition-colors hover:border-[#2a2a2a]"
         title="Drag to resize"
       >
-        <div className="w-8 h-[3px] rounded-full" style={{ background: "#3A3D45" }} />
-        <div className="w-8 h-[3px] rounded-full" style={{ background: "#3A3D45" }} />
+        <div className="h-[2px] w-6 rounded-full bg-[#222]" />
       </div>
 
-      <div className="flex flex-col gap-2 px-3 pb-3">
-        <p className="uppercase" style={{ fontSize: "11px", fontWeight: 600, color: "#6B7280", letterSpacing: "0.08em" }}>
-          Ask Verdict
-        </p>
+      <div className="flex items-center gap-2 pt-3">
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-400 text-[9px] font-bold text-[#0d0d0d]">
+          V
+        </div>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-white">Dossier AI</p>
+      </div>
 
-        {/* Suggestion pills */}
-        <div className="flex flex-wrap gap-1.5">
+      {messages.length === 0 ? (
+        <div className="mt-3 flex flex-col gap-2">
           {SUGGESTIONS.map((s) => (
             <button
               key={s}
               type="button"
               onClick={() => sendMessage(s)}
-              className="px-3 py-1 rounded-full border transition-colors hover:border-[#10B981] hover:text-white"
-              style={{ fontSize: "12px", borderColor: "#2A2D35", color: "#6B7280", background: "transparent" }}
+              className="w-full rounded-xl border border-[#1e1e1e] bg-transparent px-4 py-3 text-left text-sm text-[#888] transition hover:border-[#3a3a3a] hover:text-white"
             >
               {s}
             </button>
           ))}
         </div>
+      ) : null}
 
-        {/* Message area */}
-        <div
-          ref={(el) => { (scrollRef as React.MutableRefObject<HTMLDivElement | null>).current = el; (chatScrollRef as React.MutableRefObject<HTMLDivElement | null>).current = el }}
-          className="flex flex-col gap-1.5 overflow-y-auto"
-          style={{ height: chatHeight, minHeight: 80 }}
-        >
-          {messages.map((m, i) => (
-            <div key={i} className={`flex gap-1.5 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-              {m.role === "bot" && (
-                <div
-                  className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white shrink-0 mt-0.5"
-                  style={{ background: "#10B981" }}
-                >
-                  V
-                </div>
-              )}
-              <div
-                className="px-2.5 py-1.5 rounded-md border max-w-[85%]"
-                style={{
-                  fontSize: "13px",
-                  lineHeight: "1.75",
-                  background: m.role === "bot" ? "#1C1F26" : "#111318",
-                  borderColor: "#2A2D35",
-                  color: m.role === "bot" ? "#9CA3AF" : "#E4E4E7",
-                }}
-              >
-                {m.role === "bot" ? renderMarkdown(m.content) : m.content}
-              </div>
-            </div>
-          ))}
-          {loading && (
-            <div className="flex gap-1.5">
-              <div
-                className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white shrink-0"
-                style={{ background: "#10B981" }}
-              >
+      <div
+        ref={(el) => {
+          ;(scrollRef as React.MutableRefObject<HTMLDivElement | null>).current = el
+          ;(chatScrollRef as React.MutableRefObject<HTMLDivElement | null>).current = el
+        }}
+        className="mt-3 flex flex-col gap-1.5 overflow-y-auto"
+        style={{ height: messages.length > 0 ? chatHeight : 0, minHeight: messages.length > 0 ? 120 : 0 }}
+      >
+        {messages.map((m, i) => (
+          <div key={i} className={`flex gap-1.5 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+            {m.role === "bot" && (
+              <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-teal-400 text-[8px] font-bold text-[#0d0d0d]">
                 V
               </div>
-              <div
-                className="px-2 py-1.5 rounded-md border"
-                style={{ fontSize: "12px", background: "#1C1F26", borderColor: "#2A2D35", color: "#6B7280" }}
-              >
-                Thinking…
-              </div>
+            )}
+            <div
+              className="max-w-[85%] rounded-md border border-[#1e1e1e] px-2.5 py-1.5"
+              style={{
+                fontSize: "13px",
+                lineHeight: "1.75",
+                background: m.role === "bot" ? "#111" : "#0d0d0d",
+                color: m.role === "bot" ? "#aaa" : "#e5e5e5",
+              }}
+            >
+              {m.role === "bot" ? renderMarkdown(m.content) : m.content}
             </div>
-          )}
-        </div>
+          </div>
+        ))}
+        {loading && (
+          <div className="flex gap-1.5">
+            <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-teal-400 text-[8px] font-bold text-[#0d0d0d]">
+              V
+            </div>
+            <div className="rounded-md border border-[#1e1e1e] bg-[#111] px-2 py-1.5 text-[12px] text-[#666]">Thinking…</div>
+          </div>
+        )}
+      </div>
 
-        {/* Input row */}
-        <div className="flex gap-1.5 items-center">
-          <input
-            ref={inputRef}
-            value={inputValue}
-            onChange={(e) => onInputChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") sendMessage(inputValue)
-            }}
-            placeholder="Ask anything about your report…"
-            className="flex-1 px-2 py-1.5 rounded-md border outline-none"
-            style={{
-              fontSize: "13px",
-              background: "#1C1F26",
-              borderColor: "#2A2D35",
-              color: "#9CA3AF",
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => sendMessage(inputValue)}
-            title="Send message"
-            aria-label="Send message"
-            className="w-[26px] h-[26px] rounded-md flex items-center justify-center shrink-0 transition-opacity hover:opacity-80"
-            style={{ background: "#10B981" }}
-          >
-            <ArrowUp size={12} className="text-white" />
-          </button>
-        </div>
+      <div className="mt-2 flex items-center rounded-xl border border-[#2a2a2a] bg-[#111] px-4 py-3">
+        <input
+          ref={inputRef}
+          value={inputValue}
+          onChange={(e) => onInputChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") sendMessage(inputValue)
+          }}
+          placeholder="Type a command…"
+          className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-[#333]"
+        />
+        <button
+          type="button"
+          onClick={() => sendMessage(inputValue)}
+          title="Send message"
+          aria-label="Send message"
+          className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-400 text-[#0d0d0d] transition-opacity hover:opacity-90"
+        >
+          <ArrowUp size={14} strokeWidth={2.5} />
+        </button>
       </div>
     </div>
   )
@@ -790,32 +711,42 @@ function Chatbot({
 // ─── Report Cards ─────────────────────────────────────────────────────────────
 
 function CardShell({
+  sectionNum,
   title,
   confidence,
   onEdit,
   children,
+  dangerBorder,
+  anchorId,
+  showConfidencePill = true,
 }: {
+  sectionNum?: string
   title: string
   confidence?: string
   onEdit?: () => void
   children: React.ReactNode
+  dangerBorder?: boolean
+  anchorId?: string
+  showConfidencePill?: boolean
 }) {
+  const heading = sectionNum ? `${sectionNum} | ${title.toUpperCase()}` : title
   return (
     <div
-      className="rounded-lg border flex flex-col gap-3"
-      style={{
-        background: "#1C1F26",
-        borderColor: "#2A2D35",
-        borderWidth: "0.5px",
-        padding: "16px 18px",
-      }}
+      id={anchorId}
+      className={`mb-4 flex flex-col rounded-2xl border border-[#1e1e1e] bg-[#111] p-6 print:break-inside-avoid ${
+        dangerBorder ? "ring-1 ring-red-500/25" : ""
+      }`}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-white" style={{ fontSize: "16px", fontWeight: 600, letterSpacing: "-0.2px" }}>{title}</span>
-        <div className="flex items-center gap-1.5">
-          {confidence && confidence !== "High" && <ConfidenceBadge level={confidence} />}
-        </div>
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-white">{heading}</span>
       </div>
+      {confidence && showConfidencePill ? (
+        <div className="-mt-2 mb-4">
+          <span className="inline-block rounded-full border border-[#2a2a2a] px-3 py-1 text-[10px] text-[#666]">
+            CONFIDENCE · {confidence.toUpperCase()}
+          </span>
+        </div>
+      ) : null}
       {children}
     </div>
   )
@@ -830,38 +761,42 @@ function Card1Snapshot({
   confidence: string
   onEdit: () => void
 }) {
+  const clarityUnit = data.clarityScore <= 1 ? data.clarityScore : data.clarityScore / 10
+  const clarityHigh = data.clarityScore >= 8 || clarityUnit >= 0.8
+  const clarityModerate = data.clarityScore >= 4 || clarityUnit >= 0.4
+  const clarityShort = clarityHigh ? "HIGH" : clarityModerate ? "MODERATE" : "LOW"
+  const problemDefined = Boolean(data.problem?.trim())
+  const customerDefined = Boolean(data.targetCustomer?.trim())
+
   return (
-    <CardShell title="Idea snapshot" confidence={confidence} onEdit={onEdit}>
-      <p style={{ fontSize: "16px", fontWeight: 400, lineHeight: "1.75", color: "#E4E4E7" }}>
-        {data.oneLiner}
-      </p>
-      <div className="flex flex-col gap-2">
-        <p style={{ fontSize: "15px", fontWeight: 400, lineHeight: "1.75", color: "#9CA3AF" }}>
-          <span style={{ color: "#34D399", fontWeight: 600 }}>Problem: </span>
-          {data.problem}
-        </p>
-        <p style={{ fontSize: "15px", fontWeight: 400, lineHeight: "1.75", color: "#9CA3AF" }}>
-          <span style={{ color: "#60A5FA", fontWeight: 600 }}>Customer: </span>
-          {data.targetCustomer}
-        </p>
+    <CardShell
+      sectionNum="01"
+      title="Snapshot"
+      onEdit={onEdit}
+      anchorId="report-section-snapshot"
+      showConfidencePill={false}
+    >
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-xl border border-[#1e1e1e] bg-[#0d0d0d] p-4">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-teal-500">
+            CORE PROBLEM · {problemDefined ? "DEFINED" : "NOT DEFINED"}
+          </p>
+          <p className="text-sm leading-relaxed text-[#aaa]">{data.problem?.trim() || "—"}</p>
+        </div>
+        <div className="rounded-xl border border-[#1e1e1e] bg-[#0d0d0d] p-4">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-teal-500">
+            PRIMARY CUSTOMER · {customerDefined ? "DEFINED" : "NOT DEFINED"}
+          </p>
+          <p className="text-sm leading-relaxed text-[#aaa]">{data.targetCustomer?.trim() || "—"}</p>
+        </div>
       </div>
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {(() => {
-          const clarityColors =
-            data.clarityScore >= 8
-              ? { bg: "rgba(5,150,105,0.12)", border: "#10B98140", color: "#34D399" }
-              : data.clarityScore >= 4
-              ? { bg: "rgba(180,120,0,0.12)", border: "#92400E40", color: "#FCD34D" }
-              : { bg: "rgba(153,27,27,0.12)", border: "#991B1B40", color: "#F87171" }
-          return (
-            <span
-              className="px-2 py-0.5 rounded-full border font-medium"
-              style={{ fontSize: "12px", background: clarityColors.bg, borderColor: clarityColors.border, color: clarityColors.color }}
-            >
-              Clarity {data.clarityScore}/10
-            </span>
-          )
-        })()}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span className="inline-block rounded-full border border-[#2a2a2a] px-3 py-1 text-[10px] text-[#666]">
+          CLARITY · {clarityShort}
+        </span>
+        <span className="inline-block rounded-full border border-[#2a2a2a] px-3 py-1 text-[10px] text-[#666]">
+          CONFIDENCE · {confidence.toUpperCase()}
+        </span>
       </div>
     </CardShell>
   )
@@ -877,67 +812,51 @@ function Card2Market({
   onEdit: () => void
 }) {
   return (
-    <CardShell title="Market signals" confidence={confidence} onEdit={onEdit}>
-      <div
-        className="grid grid-cols-3 gap-1 rounded-md p-2"
-        style={{ background: "#111318" }}
-      >
+    <CardShell sectionNum="02" title="Market opportunity" confidence={confidence} onEdit={onEdit} anchorId="report-section-market">
+      <div className="grid grid-cols-3 divide-x divide-[#1e1e1e] rounded-xl border border-[#1e1e1e] bg-[#0d0d0d]">
         {[
-          { label: "TAM", desc: "Total addressable market", value: data.tam },
-          { label: "SAM", desc: "Serviceable addressable market", value: data.sam },
-          { label: "SOM", desc: "Serviceable obtainable market", value: data.som },
-        ].map(({ label, desc, value }) => (
-          <div key={label} className="flex flex-col items-center py-1">
-            <span className="font-bold text-white" style={{ fontSize: "28px" }}>
-              {extractMarketValue(value)}
-            </span>
-            <span style={{ fontSize: "13px", color: "#6B7280" }}>{label}</span>
-            <span style={{ fontSize: "11px", color: "#4B5563" }} className="text-center mt-0.5">{desc}</span>
+          { label: "TAM", desc: "Total addressable market", value: data.tam, methodology: data.tamMethodology, source: data.tamSource },
+          { label: "SAM", desc: "Serviceable addressable market", value: data.sam, methodology: data.samMethodology, source: undefined },
+          { label: "SOM", desc: "Serviceable obtainable market", value: data.som, methodology: data.somMethodology, source: undefined },
+        ].map(({ label, desc, value, methodology, source }) => (
+          <div key={label} className="flex flex-col p-4">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#444] mb-2">{label}</span>
+            <span className="text-[28px] font-bold tabular-nums text-white leading-none">{extractMarketValue(value)}</span>
+            <span className="mt-1 text-[11px] text-[#555]">{desc}</span>
+            {methodology && (
+              <p className="mt-3 text-[11px] leading-relaxed text-[#444] border-t border-[#1a1a1a] pt-3">{methodology}</p>
+            )}
+            {source && (
+              <p className="mt-1 text-[10px] text-[#333] italic">{source}</p>
+            )}
           </div>
         ))}
       </div>
-      {data.growthRate && (
-        <TrendChart growthRate={data.growthRate} timing={data.marketTiming ?? "Early"} />
-      )}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {data.growthRate && (
-          <span
-            style={{ fontSize: "13px", fontWeight: 500, padding: "4px 12px", borderRadius: "99px", background: "#052E16", color: "#4ADE80" }}
-          >
-            {extractGrowthRate(data.growthRate)}
-          </span>
-        )}
-        {data.marketTiming && (
-          <span
-            style={{
-              fontSize: "13px", fontWeight: 500, padding: "4px 12px", borderRadius: "99px",
-              background: data.marketTiming === "Early" ? "#0A1E3A" : data.marketTiming === "Peak" ? "#1C1007" : "#1C0507",
-              color: data.marketTiming === "Early" ? "#60A5FA" : data.marketTiming === "Peak" ? "#FCD34D" : "#F87171",
-            }}
-          >
-            {data.marketTiming} stage
-          </span>
-        )}
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-[#1e1e1e] bg-[#0d0d0d] p-4">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-teal-500">Path</p>
+          <p className="m-0 text-[14px] font-medium leading-snug text-white">
+            {data.growthRate ? `${extractGrowthRate(data.growthRate)} growth curve` : "—"}
+          </p>
+        </div>
+        <div className="rounded-xl border border-[#1e1e1e] bg-[#0d0d0d] p-4">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-teal-500">Timing</p>
+          <p className="m-0 text-[14px] font-medium leading-snug text-white">
+            {data.marketTiming ? `${data.marketTiming} stage` : "—"}
+            {data.marketTiming === "Late" ? " / consolidation" : ""}
+          </p>
+        </div>
       </div>
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {[
-          { label: "TAM", desc: "Everyone who could ever use this" },
-          { label: "SAM", desc: "The slice you can realistically reach" },
-          { label: "SOM", desc: "What you can capture in year 1–3" },
-        ].map(({ label, desc }) => (
-          <span
-            key={label}
-            style={{ fontSize: "13px", padding: "4px 12px", borderRadius: "99px", background: "#1C1F26", color: "#6B7280", border: "1px solid #2A2D35" }}
-          >
-            <span style={{ color: "#9CA3AF", fontWeight: 600 }}>{label}</span> — {desc}
-          </span>
-        ))}
-      </div>
-      <p style={{ fontSize: "15px", fontWeight: 400, lineHeight: "1.75", color: "#9CA3AF" }}>
-        {data.marketTimingReason}
-      </p>
+      {data.growthRate ? <TrendChart growthRate={data.growthRate} timing={data.marketTiming ?? "Early"} /> : null}
+      <p className="mt-5 max-w-3xl text-[15px] font-normal leading-relaxed text-[#aaa]">{data.marketTimingReason}</p>
     </CardShell>
   )
+}
+
+function competitorImpactLabel(i: number): { label: string; color: string } {
+  if (i === 0) return { label: "High impact", color: "var(--report-accent-bright)" }
+  if (i === 1) return { label: "Mid impact", color: "var(--report-orange)" }
+  return { label: "Low impact", color: "var(--report-muted)" }
 }
 
 function Card3Competitors({
@@ -950,33 +869,39 @@ function Card3Competitors({
   onEdit: () => void
 }) {
   return (
-    <CardShell title="Competitor intel" confidence={confidence} onEdit={onEdit}>
-      <div className="flex flex-col divide-y" style={{ borderColor: "#2A2D35" }}>
-        {(data.competitors ?? []).map((c, i) => (
-          <div
-            key={i}
-            className="flex items-start justify-between py-1.5 first:pt-0 last:pb-0"
-            style={{ borderColor: "#2A2D35" }}
-          >
-            <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="text-white" style={{ fontSize: "15px", fontWeight: 600 }}>
-                {c.name}
-              </span>
-              <span style={{ fontSize: "13px", color: "#6B7280" }}>
-                {c.funding} · {c.pricing} · {c.lastActivity}
+    <CardShell sectionNum="03" title="Competitors" confidence={confidence} onEdit={onEdit} anchorId="report-section-due">
+      <div className="flex flex-col divide-y" style={{ borderColor: "var(--report-border)" }}>
+        {(data.competitors ?? []).map((c, i) => {
+          const imp = competitorImpactLabel(i)
+          return (
+            <div
+              key={i}
+              className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
+              style={{ borderColor: "var(--report-border)" }}
+            >
+              <div className="flex flex-col gap-0.5 min-w-0 max-w-2xl">
+                <span className="text-white" style={{ fontSize: "15px", fontWeight: 600 }}>
+                  {c.name}
+                </span>
+                <span style={{ fontSize: "13px", color: "var(--report-muted)" }}>
+                  {c.funding} · {c.pricing} · {c.lastActivity}
+                </span>
+              </div>
+              <span className="shrink-0 text-[11px] font-bold uppercase tracking-wide" style={{ color: imp.color }}>
+                {imp.label}
               </span>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
       <div
-        className="rounded-md p-2 mt-1"
-        style={{ background: "#111318", border: "0.5px solid #2A2D35" }}
+        className="rounded-md p-3 mt-3"
+        style={{ background: "var(--report-elevated)", border: "1px solid var(--report-border)" }}
       >
-        <p className="font-bold mb-1" style={{ fontSize: "12px", color: "#34D399" }}>
+        <p className="font-bold mb-1.5" style={{ fontSize: "11px", color: "var(--landing-accent)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
           Gap identified
         </p>
-        <p style={{ fontSize: "15px", fontWeight: 400, lineHeight: "1.75", color: "#9CA3AF" }}>
+        <p style={{ fontSize: "14px", fontWeight: 400, lineHeight: "1.75", color: "var(--report-body)" }}>
           {data.gapStatement}
         </p>
       </div>
@@ -988,122 +913,106 @@ function Card4EntryScore({
   data,
   confidence,
   onEdit,
+  nextAction,
 }: {
   data: ReportData["entryScore"]
   confidence: string
   onEdit: () => void
+  nextAction?: string
 }) {
   const score = safeScore(data.entryScore)
   const bc = getBarrierColors(score)
   return (
-    <CardShell title="Market entry score" confidence={confidence} onEdit={onEdit}>
-      <div className="flex items-center gap-2">
-        <span style={{ fontSize: "36px", fontWeight: 700, color: bc.color }}>
-          {score}<span style={{ fontSize: "16px", fontWeight: 400, color: "#64748B" }}>/10</span>
+    <CardShell sectionNum="04" title="Entry strategy" confidence={confidence} onEdit={onEdit}>
+      {/* Score + bar row */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <span style={{ fontSize: "36px", fontWeight: 700, color: bc.color, lineHeight: 1 }}>
+          {score}<span style={{ fontSize: "16px", fontWeight: 400, color: "var(--report-muted)" }}>/10</span>
         </span>
         <span
-          className="px-2 py-0.5 rounded-full font-medium"
-          style={{ fontSize: "10px", background: bc.bg, color: bc.color, border: `0.5px solid ${bc.border}` }}
+          className="px-2.5 py-1 rounded-full font-semibold"
+          style={{ fontSize: "11px", background: bc.bg, color: bc.color, border: `1px solid ${bc.border}` }}
         >
           {getBarrierLevel(score)}
         </span>
       </div>
-      <p style={{ fontSize: "13px", color: "#6B7280" }}>Based on your founder profile</p>
-      <div className="w-full" style={{ height: "6px", background: "#2A2D35", borderRadius: "99px" }}>
-        <div style={{ width: `${(score / 10) * 100}%`, height: "100%", borderRadius: "99px", background: bc.color }} />
+      <div className="flex flex-col gap-1">
+        <p style={{ fontSize: "12px", color: "var(--report-muted)" }}>Based on your founder profile</p>
+        <div className="w-full" style={{ height: "4px", background: "var(--report-border)", borderRadius: "99px" }}>
+          <div style={{ width: `${(score / 10) * 100}%`, height: "100%", borderRadius: "99px", background: bc.bar }} />
+        </div>
+        <div className="flex justify-between">
+          <span style={{ fontSize: "10px", color: "var(--report-muted)" }}>Low Risk</span>
+          <span style={{ fontSize: "10px", color: "var(--report-muted)" }}>High Risk</span>
+        </div>
       </div>
-      <div className="flex justify-between mt-1">
-        <span style={{ fontSize: "11px", color: "#6B7280" }}>Low Risk</span>
-        <span style={{ fontSize: "11px", color: "#6B7280" }}>High Risk</span>
+
+      {/* Two-column: barriers + advantages */}
+      <div className="grid grid-cols-2 gap-4 mt-1">
+        <div className="flex flex-col gap-2">
+          <p className="uppercase tracking-widest" style={{ fontSize: "10px", fontWeight: 700, color: "var(--report-muted)" }}>Barriers</p>
+          {(data.barriers ?? []).map((b, i) => (
+            <div key={i} className="flex gap-2 items-start">
+              <Dot color="var(--report-accent-bright)" />
+              <span style={{ fontSize: "13px", lineHeight: "1.6", color: "var(--report-body)" }}>{b}</span>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-col gap-2">
+          <p className="uppercase tracking-widest" style={{ fontSize: "10px", fontWeight: 700, color: "var(--report-muted)" }}>Advantages</p>
+          {(data.advantages ?? []).map((a, i) => (
+            <div key={i} className="flex gap-2 items-start">
+              <Dot color="var(--landing-accent)" />
+              <span style={{ fontSize: "13px", lineHeight: "1.6", color: "var(--report-body)" }}>{a}</span>
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="flex flex-col gap-1.5 mt-1">
-        <p className="uppercase tracking-wide" style={{ fontSize: "12px", fontWeight: 500, color: "#6B7280" }}>Barriers</p>
-        {(data.barriers ?? []).map((b, i) => (
-          <div key={i} className="flex gap-1.5 items-start">
-            <Dot color="#F87171" />
-            <span style={{ fontSize: "15px", fontWeight: 400, lineHeight: "1.75", color: "#9CA3AF" }}>{b}</span>
-          </div>
-        ))}
-      </div>
-      <div className="flex flex-col gap-1.5 mt-1">
-        <p className="uppercase tracking-wide" style={{ fontSize: "12px", fontWeight: 500, color: "#6B7280" }}>Advantages</p>
-        {(data.advantages ?? []).map((a, i) => (
-          <div key={i} className="flex gap-1.5 items-start">
-            <Dot color="#34D399" />
-            <span style={{ fontSize: "15px", fontWeight: 400, lineHeight: "1.75", color: "#9CA3AF" }}>{a}</span>
-          </div>
-        ))}
-      </div>
+
+      {data.fastestEntryPath ? (
+        <div className="rounded-md p-3 mt-1" style={{ background: "var(--report-elevated)", border: "1px solid var(--report-border)" }}>
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--landing-accent)" }}>
+            Fastest entry path
+          </p>
+          <p style={{ fontSize: "14px", lineHeight: "1.75", color: "var(--report-body)" }}>{data.fastestEntryPath}</p>
+        </div>
+      ) : null}
+
+      {nextAction ? (
+        <div className="rounded-md p-3 mt-1" style={{ background: "var(--report-elevated)", border: "1px solid var(--report-border)" }}>
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--landing-accent)" }}>
+            Next action
+          </p>
+          <p style={{ fontSize: "14px", lineHeight: "1.75", color: "var(--report-body)" }}>{nextAction}</p>
+        </div>
+      ) : null}
     </CardShell>
   )
 }
 
-function Card5Verdict({
+function KillCriteriaCard({
   data,
   confidence,
   onEdit,
+  anchorId,
 }: {
   data: ReportData["verdict"]
   confidence: string
   onEdit: () => void
+  anchorId?: string
 }) {
-  const score = safeScore(data.viabilityScore)
-  const vc = getVerdictColors(score)
-
+  const risks = data.topRisks ?? []
+  if (risks.length === 0) return null
   return (
-    <CardShell title="Go / No-Go verdict" confidence={confidence} onEdit={onEdit}>
-      <div
-        className="inline-flex items-center px-3 py-1 rounded-md self-start uppercase tracking-wide"
-        style={{ background: vc.bg, border: vc.border }}
-      >
-        <span style={{ fontSize: "14px", fontWeight: 700, color: vc.color }}>
-          {getVerdict(score)}
-        </span>
-      </div>
-      <div className="flex flex-col gap-0.5">
-        <span className="uppercase" style={{ fontSize: "12px", fontWeight: 500, color: "#6B7280", letterSpacing: "0.06em" }}>Viability score</span>
-        <span style={{ fontSize: "36px", fontWeight: 700, color: vc.color }}>
-          {score}<span style={{ fontSize: "16px", fontWeight: 400, color: "#64748B" }}>/9</span>
-        </span>
-      </div>
-      <div className="w-full" style={{ height: "6px", background: "#2A2D35", borderRadius: "99px" }}>
-        <div style={{ width: `${(score / 9) * 100}%`, height: "100%", borderRadius: "99px", background: vc.color }} />
-      </div>
-      <div className="flex justify-between mt-1">
-        <span style={{ fontSize: "11px", color: "#6B7280" }}>Low Risk</span>
-        <span style={{ fontSize: "11px", color: "#6B7280" }}>High Risk</span>
-      </div>
-      <div className="flex flex-col gap-1.5 mt-1">
-        <p className="uppercase tracking-wide" style={{ fontSize: "12px", fontWeight: 500, color: "#6B7280" }}>
-          Why this verdict
-        </p>
-        {(data.topReasons ?? []).map((r, i) => (
-          <div key={i} className="flex gap-1.5 items-start">
-            <Dot color="#34D399" />
-            <span style={{ fontSize: "15px", fontWeight: 400, lineHeight: "1.75", color: "#9CA3AF" }}>{r}</span>
-          </div>
+    <CardShell sectionNum="05" title="Kill criteria" confidence={confidence} onEdit={onEdit} dangerBorder anchorId={anchorId}>
+      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.16em]" style={{ color: "var(--report-accent-bright)" }}>
+        We&apos;d change our mind if…
+      </p>
+      <ol className="m-0 list-decimal space-y-2 pl-5" style={{ color: "var(--report-body)", fontSize: 15, lineHeight: 1.65 }}>
+        {risks.map((r, i) => (
+          <li key={i}>{r}</li>
         ))}
-      </div>
-      <div className="flex flex-col gap-1.5 mt-1">
-        <p className="uppercase tracking-wide" style={{ fontSize: "12px", fontWeight: 500, color: "#6B7280" }}>
-          Key risks
-        </p>
-        {(data.topRisks ?? []).map((r, i) => (
-          <div key={i} className="flex gap-1.5 items-start">
-            <Dot color="#F87171" />
-            <span style={{ fontSize: "15px", fontWeight: 400, lineHeight: "1.75", color: "#9CA3AF" }}>{r}</span>
-          </div>
-        ))}
-      </div>
-      {data.nextAction && (
-        <div
-          className="rounded-md p-2 mt-1"
-          style={{ background: "#111318", border: "0.5px solid #2A2D35" }}
-        >
-          <p className="font-bold mb-1" style={{ fontSize: "12px", color: "#34D399" }}>Next action</p>
-          <p style={{ fontSize: "15px", fontWeight: 400, lineHeight: "1.75", color: "#9CA3AF" }}>{data.nextAction}</p>
-        </div>
-      )}
+      </ol>
     </CardShell>
   )
 }
@@ -1112,43 +1021,48 @@ function Card6DevilsAdvocate({
   data,
   confidence,
   onEdit,
+  anchorId,
 }: {
   data: ReportData["devilsAdvocate"]
   confidence: string
   onEdit: () => void
+  anchorId?: string
 }) {
   return (
-    <CardShell title="Devil's advocate" confidence={confidence} onEdit={onEdit}>
-      <div className="flex flex-col gap-2">
+    <CardShell sectionNum="06" title="Devil's advocate" confidence={confidence} onEdit={onEdit} anchorId={anchorId}>
+      <div className="flex flex-col divide-y divide-[#1e1e1e]">
         {(data.failures ?? []).map((f, i) => (
-          <div
-            key={i}
-            className="rounded-md p-2 border"
-            style={{ background: "#0D0808", borderColor: "#2A0A0A" }}
-          >
-            <div className="flex items-center justify-between mb-1">
-              <span className="font-bold" style={{ fontSize: "15px", color: "#F87171" }}>{f.name}</span>
-              <span style={{ fontSize: "13px", color: "#6B7280" }}>{f.year}</span>
+          <div key={i} className="grid grid-cols-[1fr_2fr] gap-6 py-4 first:pt-0">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--report-accent-bright)" }}>
+                  Failed
+                </span>
+                {f.year ? <span className="text-[10px] text-[#444]">{f.year}</span> : null}
+              </div>
+              <span className="font-bold text-white" style={{ fontSize: "15px" }}>{f.name}</span>
+              <p className="mt-1.5" style={{ fontSize: "13px", lineHeight: "1.6", color: "var(--report-muted)" }}>{f.what}</p>
             </div>
-            <p className="mb-0.5" style={{ fontSize: "15px", lineHeight: "1.7", color: "#6B7280" }}>
-              <span className="font-bold" style={{ color: "#9CA3AF" }}>What: </span>{f.what}
-            </p>
-            <p style={{ fontSize: "15px", lineHeight: "1.7", color: "#6B7280" }}>
-              <span className="font-bold" style={{ color: "#9CA3AF" }}>Why: </span>{f.why}
-            </p>
+            <div className="flex flex-col justify-center">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--landing-accent)" }}>
+                So what for you
+              </p>
+              <p style={{ fontSize: "13px", lineHeight: "1.6", color: "var(--report-body)" }}>{f.why}</p>
+            </div>
           </div>
         ))}
       </div>
-      <div
-        className="rounded-md p-2 border mt-1"
-        style={{ background: "#0A0808", borderColor: "#2A0A0A" }}
-      >
-        <p className="font-bold mb-1" style={{ fontSize: "12px", color: "#F87171" }}>The pattern</p>
-        <p style={{ fontSize: "15px", lineHeight: "1.7", color: "#6B7280" }}>{data.thePattern}</p>
+
+      <div className="rounded-md border border-[#1e1e1e] bg-[#0d0d0d] p-4 mt-2">
+        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--landing-accent)" }}>
+          The pattern
+        </p>
+        <p style={{ fontSize: "14px", lineHeight: "1.75", color: "var(--report-body)" }}>{renderMarkdown(data.thePattern)}</p>
       </div>
+
       {data.survivalRule && (
-        <p className="italic mt-1" style={{ fontSize: "15px", lineHeight: "1.7", color: "#6B7280" }}>
-          {data.survivalRule}
+        <p className="italic mt-3 border-l-2 border-[#2a2a2a] pl-4" style={{ fontSize: "13px", lineHeight: "1.75", color: "var(--report-muted)" }}>
+          {renderMarkdown(data.survivalRule)}
         </p>
       )}
     </CardShell>
@@ -1171,6 +1085,7 @@ export default function ReportPage() {
   const [pdfLoading, setPdfLoading] = useState(false)
   const [reportDate, setReportDate] = useState<string>("")
   const [isRegenerating, setIsRegenerating] = useState(false)
+  const [activeNavKey, setActiveNavKey] = useState<"snapshot" | "market" | "due" | "risk">("snapshot")
 
   useEffect(() => {
     const raw = localStorage.getItem("validateiq_report")
@@ -1199,7 +1114,7 @@ export default function ReportPage() {
         idea: ideaStr,
         date: new Date().toISOString(),
         verdict: parsed.verdict?.verdict ?? "CONDITIONAL GO",
-        viabilityScore: parsed.verdict?.viabilityScore ?? 0,
+        viabilityScore: viabilityWhenSaving(parsed.verdict),
         report: parsed,
         survey: surveyParsed,
       }
@@ -1245,7 +1160,7 @@ export default function ReportPage() {
       const domHeight = element.scrollHeight
 
       const dataUrl = await toPng(element, {
-        backgroundColor: "#000000",
+        backgroundColor: "var(--report-bg)",
         pixelRatio: 2,
         width: domWidth,
         height: domHeight,
@@ -1322,11 +1237,32 @@ export default function ReportPage() {
     router.push("/workspace")
   }
 
+  async function handleShare() {
+    const url = typeof window !== "undefined" ? window.location.href : ""
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Verdict memo", text: idea || "Validation report", url })
+      } else {
+        await navigator.clipboard.writeText(url)
+        toast.success("Link copied")
+      }
+    } catch (err) {
+      const name = err instanceof DOMException ? err.name : ""
+      if (name === "AbortError") return
+      try {
+        await navigator.clipboard.writeText(url)
+        toast.success("Link copied")
+      } catch {
+        toast.error("Could not share")
+      }
+    }
+  }
+
   if (!report || !survey) {
     return (
       <div
         className="flex items-center justify-center min-h-screen text-sm"
-        style={{ background: "#000000", color: "#6B7280" }}
+        style={{ background: "var(--report-bg)", color: "var(--report-muted)" }}
       >
         Loading…
       </div>
@@ -1342,152 +1278,116 @@ export default function ReportPage() {
     devilsAdvocate: "Edit devil's advocate — find different or more recent failure examples in my category",
   }
 
-  return (
-    <div
-      className="flex h-screen overflow-hidden"
-      style={{ background: "#000000", fontFamily: "Inter, system-ui, sans-serif" }}
-    >
-      {/* ── LEFT PANEL ──────────────────────────────────────────────────────── */}
-      <aside
-        className="flex flex-col shrink-0 border-r overflow-hidden print-hide"
-        style={{ width: 300, background: "#000000", borderColor: "#2A2D35" }}
-      >
-        {/* Logo + idea */}
-        <div className="flex items-center justify-between px-3 py-3.5 border-b shrink-0" style={{ borderColor: "#2A2D35", minHeight: 56 }}>
-          <div className="flex flex-col gap-1 min-w-0 flex-1">
-            <span className="text-base font-bold text-white">Verdict</span>
-            <p className="text-xs line-clamp-1" style={{ color: "#6B7280" }}>
-              {idea}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => router.push("/workspace")}
-            aria-label="Back to Workspace"
-            className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981] ml-2"
-            style={{ color: "#9CA3AF" }}
-            title="Back to Workspace"
-          >
-            <ArrowLeft size={15} />
-          </button>
-        </div>
+  const memoDateStr = reportDate
+    ? new Date(reportDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : "Today"
 
-        {/* Tabs */}
-        <div role="tablist" className="flex border-b shrink-0" style={{ borderColor: "#2A2D35" }}>
-          {(["profile", "sources"] as const).map((tab) => (
+  const hasKillRisks = (report.verdict.topRisks ?? []).length > 0
+
+  const NAV_LINKS: { key: "snapshot" | "market" | "due" | "risk"; label: string; id: string }[] = [
+    { key: "snapshot", label: "SNAPSHOT", id: "report-section-snapshot" },
+    { key: "market", label: "MARKET", id: "report-section-market" },
+    { key: "due", label: "DUE DILIGENCE", id: "report-section-due" },
+    { key: "risk", label: "RISK", id: "report-section-risk" },
+  ]
+
+  function goNavSection(key: "snapshot" | "market" | "due" | "risk", id: string) {
+    setActiveNavKey(key)
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  return (
+    <div className="relative flex h-screen flex-col overflow-hidden bg-[#0d0d0d]" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
+      {isRegenerating && (
+        <div
+          className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3"
+          style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(2px)" }}
+        >
+          <div
+            className="h-10 w-10 animate-spin rounded-full border-2 border-transparent"
+            style={{
+              borderTopColor: "var(--report-accent)",
+              borderRightColor: "color-mix(in srgb, var(--report-accent) 32%, transparent)",
+            }}
+          />
+          <p className="text-[13px] text-[#aaa]">Regenerating report…</p>
+        </div>
+      )}
+
+      <header className="print-hide flex shrink-0 items-center justify-between gap-4 border-b border-[#1e1e1e] bg-[#0d0d0d] px-6 py-3">
+        <div className="min-w-0 shrink">
+          <span className="block text-sm font-bold uppercase tracking-widest text-white">INTELLIGENCE MEMO</span>
+          <span className="mt-0.5 block text-[10px] uppercase tracking-wider text-[#555]">
+            {memoDateStr} · 6 SECTIONS · {survey.geography}
+          </span>
+        </div>
+        <nav className="hidden min-w-0 flex-1 justify-center gap-1 lg:flex" aria-label="Section navigation">
+          {NAV_LINKS.map((item) => (
             <button
-              key={tab}
+              key={item.key}
               type="button"
-              role="tab"
-              aria-selected={activeTab === tab ? true : false}
-              onClick={() => setActiveTab(tab)}
-              className="flex-1 py-3 text-sm font-medium transition-colors border-b-[3px]"
-              style={{
-                borderColor: activeTab === tab ? "#10B981" : "transparent",
-                color: activeTab === tab ? "#ffffff" : "#6B7280",
-              }}
+              onClick={() => goNavSection(item.key, item.id)}
+              className={`cursor-pointer px-3 pb-[11px] text-xs uppercase tracking-widest transition ${
+                activeNavKey === item.key
+                  ? "border-b border-teal-400 text-white"
+                  : "border-b border-transparent text-[#555] hover:text-white"
+              }`}
             >
-              {tab === "profile" ? "Idea profile" : "Sources / Citations"}
+              {item.label}
             </button>
           ))}
-        </div>
-
-        {/* Tab content */}
-        <div className="flex-1 overflow-y-auto">
-          {activeTab === "profile" ? (
-            <IdeaProfileTab
-              survey={survey}
-              onFieldSelect={handleFieldSelect}
-            />
-          ) : (
-            <SourcesTab report={report} />
-          )}
-        </div>
-
-        {/* Chatbot */}
-        <Chatbot
-          report={report}
-          inputValue={chatInput}
-          onInputChange={setChatInput}
-          inputRef={chatInputRef}
-        />
-      </aside>
-
-      {/* ── RIGHT PANEL ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-col flex-1 overflow-hidden relative">
-        {isRegenerating && (
-          <div
-            className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3"
-            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(2px)" }}
+        </nav>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={handleRevalidate}
+            className="rounded-lg border border-[#2a2a2a] bg-transparent px-3 py-1.5 text-xs uppercase text-white transition hover:bg-white/5"
           >
-            <div
-              className="w-10 h-10 rounded-full border-2 border-transparent animate-spin"
-              style={{ borderTopColor: "#10B981", borderRightColor: "rgba(16,185,129,0.3)" }}
-            />
-            <p style={{ fontSize: "13px", color: "#9CA3AF" }}>Regenerating report…</p>
-          </div>
-        )}
-        {/* Topbar */}
-        <div
-          className="flex items-center justify-between px-5 py-3.5 border-b shrink-0 print-hide"
-          style={{ borderColor: "#2A2D35", minHeight: 56 }}
-        >
-          <div className="flex flex-col gap-1">
-            <span className="text-base font-bold text-white">Validation report</span>
-            <span className="text-xs" style={{ color: "#6B7280" }}>
-              {reportDate
-                ? `Generated ${new Date(reportDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
-                : "Generated today"}{" "}
-              · 6 sections · {survey.geography} market
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => router.push("/")}
-              aria-label="Go to homepage"
-              className="w-8 h-8 rounded-md flex items-center justify-center transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]"
-              style={{ color: "#6B7280" }}
-              title="Home"
-            >
-              <Home size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={handleRevalidate}
-              className="text-sm px-3.5 py-1.5 rounded-md border transition-colors hover:border-[#10B98140] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]"
-              style={{ borderColor: "#2A2D35", color: "#9CA3AF" }}
-            >
-              Re-validate
-            </button>
-            <button
-              type="button"
-              onClick={handleDownloadPDF}
-              disabled={pdfLoading}
-              aria-label={pdfLoading ? "Generating PDF…" : "Download PDF report"}
-              className="text-sm px-3.5 py-1.5 rounded-md font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-60"
-              style={{ background: "#10B981" }}
-            >
-              {pdfLoading ? "Generating…" : "Download PDF"}
-            </button>
-          </div>
+            RE-VALIDATE
+          </button>
+          <button
+            type="button"
+            onClick={handleDownloadPDF}
+            disabled={pdfLoading}
+            aria-label={pdfLoading ? "Generating PDF…" : "Print or save PDF"}
+            className="inline-flex items-center justify-center rounded-lg border border-[#2a2a2a] bg-transparent px-3 py-1.5 text-white transition hover:bg-white/5 disabled:opacity-60"
+          >
+            {pdfLoading ? <span className="text-xs">…</span> : <Printer size={16} strokeWidth={1.75} />}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleShare()}
+            aria-label="Share memo"
+            className="inline-flex items-center justify-center rounded-lg border border-[#2a2a2a] bg-transparent px-3 py-1.5 text-white transition hover:bg-white/5"
+          >
+            <Share2 size={16} strokeWidth={1.75} />
+          </button>
+          <button
+            type="button"
+            aria-label="More options"
+            className="inline-flex items-center justify-center rounded-lg border border-[#2a2a2a] bg-transparent px-3 py-1.5 text-white transition hover:bg-white/5"
+          >
+            <MoreHorizontal size={16} strokeWidth={1.75} />
+          </button>
         </div>
+      </header>
 
-        {/* Scrolling report content */}
-        <div
-          ref={rightPanelRef}
-          className="flex-1 overflow-y-auto flex flex-col gap-3.5"
-          style={{ padding: "16px 18px" }}
-        >
+      <div className="flex min-h-0 flex-1 flex-row overflow-hidden">
+        <div ref={rightPanelRef} className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto bg-[#0d0d0d] px-8 py-6">
           {isDemoMode && (
             <div
               className="text-[10px] px-3 py-1.5 rounded-md border"
-              style={{ background: "#1C1F26", borderColor: "#2A2D35", color: "#34D399", borderWidth: "0.5px" }}
+              style={{ background: "var(--report-surface)", borderColor: "var(--report-border)", color: "var(--report-orange)", borderWidth: "0.5px" }}
             >
               Demo mode — results are pre-loaded for speed
             </div>
           )}
-          <SummaryCard verdict={report.verdict} entryScore={report.entryScore} />
+          <ReportHero
+            snapshot={report.snapshot}
+            verdict={report.verdict}
+            onViewCitations={() => setActiveTab("sources")}
+            reportDateStr={memoDateStr}
+          />
           <Card1Snapshot
             data={report.snapshot}
             confidence={report.confidence?.snapshot ?? "Medium"}
@@ -1507,20 +1407,74 @@ export default function ReportPage() {
             data={report.entryScore}
             confidence={report.confidence?.entryScore ?? "Medium"}
             onEdit={() => focusChatInput(CARD_EDIT_MESSAGES.entryScore)}
+            nextAction={report.verdict.nextAction}
           />
-          <Card5Verdict
+          <KillCriteriaCard
             data={report.verdict}
             confidence={report.confidence?.verdict ?? "Medium"}
             onEdit={() => focusChatInput(CARD_EDIT_MESSAGES.verdict)}
+            anchorId={hasKillRisks ? "report-section-risk" : undefined}
           />
           <Card6DevilsAdvocate
             data={report.devilsAdvocate}
             confidence={report.confidence?.devilsAdvocate ?? "Medium"}
             onEdit={() => focusChatInput(CARD_EDIT_MESSAGES.devilsAdvocate)}
+            anchorId={!hasKillRisks ? "report-section-risk" : undefined}
           />
         </div>
-      </div>
 
+        <aside className="print-hide flex w-[340px] shrink-0 flex-col overflow-hidden border-l border-[#1e1e1e] bg-[#0d0d0d]">
+          <div className="flex shrink-0 items-start justify-between border-b border-[#1e1e1e] px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => router.push("/workspace")}
+                  aria-label="Back to Workspace"
+                  className="text-[#555] transition hover:text-white"
+                  title="Back to Workspace"
+                >
+                  <ArrowLeft size={16} />
+                </button>
+                <span className="text-base font-bold text-white">VERDICT</span>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-teal-400" aria-hidden />
+                <span className="text-[10px] uppercase tracking-wider text-teal-400">Forensic analysis active</span>
+              </div>
+            </div>
+          </div>
+
+          <div role="tablist" className="flex shrink-0 border-b border-[#1e1e1e]">
+            {(["profile", "sources"] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab ? true : false}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-2.5 text-xs font-semibold uppercase tracking-widest transition ${
+                  activeTab === tab
+                    ? "border-b-2 border-teal-400 text-white"
+                    : "border-b-2 border-transparent text-[#444]"
+                }`}
+              >
+                {tab === "profile" ? "Idea profile" : "SOURCES"}
+              </button>
+            ))}
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {activeTab === "profile" ? (
+              <IdeaProfileTab survey={survey} onFieldSelect={handleFieldSelect} />
+            ) : (
+              <SourcesTab report={report} />
+            )}
+          </div>
+
+          <Chatbot report={report} inputValue={chatInput} onInputChange={setChatInput} inputRef={chatInputRef} />
+        </aside>
+      </div>
     </div>
   )
 }

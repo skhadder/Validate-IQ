@@ -45,6 +45,34 @@
   --surface: #111318;
   --card-bg: #1c1f26;
   --border-color: #2a2d35;
+  /* Landing — deep slate + teal (“sea glass”) palette */
+  --landing-bg: #000000;
+  --landing-surface: #000000;
+  --landing-surface-elevated: #000000;
+  --landing-border: #334155;
+  --landing-muted: #94a3b8;
+  --landing-accent: #14b8a6;
+  --landing-accent-dim: rgba(20, 184, 166, 0.15);
+  --landing-warm: #d97706;
+  --landing-warm-dim: rgba(217, 119, 6, 0.2);
+  --landing-cta-on-light: #020617;
+  /* Report / memo — forensic ledger (near-black + red + salmon) */
+  --report-bg: #0b0b0b;
+  --report-surface: #161616;
+  --report-elevated: #121212;
+  --report-border: #2d2d2d;
+  --report-muted: #a0a0a0;
+  --report-muted-dark: #6b6b6b;
+  --report-body: #b0b0b0;
+  --report-text: #ffffff;
+  --report-text-soft: #e5e5e5;
+  --report-accent: #e63946;
+  --report-accent-bright: #ff4c4c;
+  --report-orange: #ff8c69;
+  --report-orange-deep: #d9534f;
+  --report-accent-dim: rgba(230, 57, 70, 0.16);
+  --report-salmon-dim: rgba(255, 140, 105, 0.14);
+  --report-chart-track: #2a2a2a;
 }
 
 .dark {
@@ -134,6 +162,12 @@
   }
 }
 
+@layer utilities {
+  .font-heading {
+    font-family: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
 /* Added noise texture overlay */
 .noise-overlay {
   position: fixed;
@@ -218,6 +252,26 @@
   animation: marquee 30s linear infinite;
 }
 
+/* Landing funding ticker (client-only; styles global for SSR-safe markup) */
+@keyframes landing-ticker {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.landing-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: landing-ticker 75s linear infinite;
+}
+
+.landing-ticker-track:hover {
+  animation-play-state: paused;
+}
+
 /* Draw line animation for charts */
 @keyframes draw-line {
   to {
@@ -250,6 +304,12 @@
 
 .cta-input-breathe {
   animation: cta-input-breathe 2s ease-in-out infinite;
+}
+
+/* Sign-in — subtle caret grid on near-black */
+.signin-page-bg {
+  background-color: #050505;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Cpath fill='none' stroke='rgba(255,255,255,0.045)' stroke-width='0.6' d='M4 6l5 5 5-5'/%3E%3C/svg%3E");
 }
 
 /* 

@@ -6,7 +6,27 @@
 
 ## What We're Building
 
-Verdict validates startup ideas in 60 seconds using live web intelligence powered by Perplexity Sonar Pro. Founders get a full report: market sizing, competitor intel, entry score, Go/No-Go verdict, and a Devil's Advocate section showing real companies that failed in their space.
+Verdict produces a **structured first-pass diligence memo in about a minute** using live web intelligence (Perplexity Sonar Pro). Founders get market sizing, competitor intel, entry assessment, a Go / Conditional / No-Go synthesis, and a Devil's Advocate section (real failures + patterns in the space). **Positioning:** research and synthesis from public information and the founder profile — **not** a substitute for talking to customers, running experiments, or legal/financial advice.
+
+---
+
+## Report: Market Research Standards
+
+What to **add** to the report (product + prompts + UX copy):
+
+- **Bottom-up sizing path** — Short "how we estimated" (buyers × price, seats × ARPU, or equivalent) so TAM/SAM/SOM isn't only top-down industry percentages.
+- **ICP + job-to-be-done** — Tight paragraph: who pays, what job they hire the product for, what they use today instead.
+- **Substitutes & "good enough"** — Beyond named competitors: spreadsheets, services, incumbents' partial solutions, status quo.
+- **Demand signals (explicitly not measured)** — What would count as *strong* vs *weak* validation in *this* category (pilots, LOIs, preorders, inbound) without claiming we observed them.
+- **Kill criteria** — "We'd change our mind if…" (specific competitor, regulation, channel, or unit-economics fact).
+- **Uncertainty** — Per section or global callout where the web is thin or conflicting; avoid uniform confidence.
+- **Methodology blurb** — On the report: what each block means, that sources can be wrong or dated, link to citations.
+
+What to **remove or tighten**:
+
+- **Repeated narrative** — If market, verdict, and Devil's Advocate say the same thing, collapse to one sharp takeaway.
+- **Wide shallow competitor tables** — Prefer fewer rows with *why they matter for your entry* over many empty rows.
+- **Failure stories without transfer** — Cut or shorten cases that don't tie to *this* founder's stage, budget, and geography.
 
 ---
 
@@ -24,9 +44,10 @@ Verdict validates startup ideas in 60 seconds using live web intelligence powere
 
 - [ ] Add Supabase auth (Google OAuth)
 - [ ] Replace localStorage with DB-backed report storage
+- [ ] Rate-limit and protect API routes (validate + chat) — cost and abuse control alongside auth
 - [ ] Real-time progress indicator during validation (show which of 6 calls completed)
 - [ ] Animated score reveal on report load
-- [ ] Share link — read-only report URL
+- [ ] Share link — read-only report URL *(also the main viral loop; not duplicated later in roadmap)*
 
 ---
 
@@ -36,26 +57,60 @@ Verdict validates startup ideas in 60 seconds using live web intelligence powere
 | Feature | Description | Tier |
 |---------|-------------|------|
 | Idea history + score timeline | Re-validate and see scores change over time | Pro |
-| Real-time validation progress | Show which API call completed live | Free |
 | Investor-ready PDF mode | Reformatted export designed for investor emails | Pro |
+
+*Real-time validation progress is listed under Immediate Fixes above.*
 
 ### Next 30 Days
 | Feature | Description | Tier |
 |---------|-------------|------|
 | Compare mode | Validate 2-3 ideas side by side, same founder profile | Pro |
-| Share link | Read-only report URL — biggest viral loop | Pro |
 | Competitor deep-dive | Click a competitor to get full breakdown | Pro |
 | Notion export | One-click export report as structured Notion page | Pro |
+
+*Share link: ship in Immediate Fixes; don't rebuild as a separate roadmap item.*
+
+**Sequencing:** Ship **Scenario mode** (profile change → re-validation, framed as "simulate a different version of yourself") before leaning hard into **Compare mode** + **Multi-Persona Analyst** in the same release window — avoid three parallel "comparison" concepts at once.
 
 ### Next 90 Days
 | Feature | Description | Tier |
 |---------|-------------|------|
 | Weekly re-scan alert | Auto re-run market + competitor sections, alert on changes | Pro |
-| Benchmark score | "Your score is top 30% in EdTech this quarter" | Pro |
 | Team mode | Add co-founders, leave inline comments on report sections | Team |
-| Accelerator cohort dashboard | Admin view of all cohort founders' reports | Accelerator |
-| YC application pre-fill | Auto-fill YC app questions from validation report | Pro |
 | "Ideas like yours" section | Pattern matching from validation corpus | Pro |
+
+**Defer until core loop + paid conversion are working** (high build cost vs. unproven payoff): benchmark score ("top X% in vertical"), accelerator cohort dashboard, YC application pre-fill — revisit after MRR traction.
+
+---
+
+## Stolen from MiroFish
+
+Concepts adapted from MiroFish's multi-agent simulation engine into Verdict's founder validation context.
+
+**1. Scenario Mode** *(from MiroFish's "God's-eye view variable injection")*
+After getting a report, founder changes one variable ("what if my budget was $50K?" or "what if I targeted Europe?") and only the affected sections re-run instantly. Frame it as "Simulate a different version of yourself."
+Already partially built — founder profile edit triggers re-validation. Just needs UX framing.
+- Complexity: Easy | Tier: Pro | Priority: **Ship now**
+
+**2. Upload Seed Materials** *(from MiroFish's "seed extraction from real world")*
+Founders upload a pitch deck, market research PDF, or business plan doc. Verdict extracts the idea + context automatically — removes blank-page friction entirely.
+- Complexity: Medium (PDF parsing + extraction prompt) | Tier: Pro | Priority: **Next 30 days**
+
+**3. Multi-Persona Analyst Panel** *(from MiroFish's "agents with independent personalities")*
+Instead of one generic chatbot, 3 named AI analyst personas the founder chats with independently:
+- **"The Investor"** — skeptical, asks hard questions about moat and unit economics
+- **"The Operator"** — execution-focused, asks about GTM, hiring, and timelines
+- **"The Devil"** — finds every reason it will fail, no sugarcoating
+Each gives different answers to the same question based on their lens.
+- Complexity: Medium (different system prompts per persona, same report context) | Tier: Pro | Priority: **Next 30 days** — *after Scenario mode + compare positioning are clear*
+
+**4. Scenario Comparison** *(from MiroFish's "dual-platform parallel simulation")*
+"Run this idea as 3 different founders" — same idea, 3 founder profiles side by side (e.g., technical solo founder with $0 vs funded team with $50K). Shows how dramatically entry score and verdict change based on who's building.
+- Complexity: Medium (3x API calls, comparison layout) | Tier: Team | Priority: **Next 90 days**
+
+**5. Temporal Re-scan + Change Detection** *(from MiroFish's "dynamic temporal memory updates")*
+Weekly auto re-scan of market + competitor sections. Alert founder if a new competitor launched, a funding round closed, or market size estimates shifted materially. "Your competitor Y just raised $10M — this changes your entry score."
+- Complexity: Hard (auth, scheduled jobs, notifications) | Tier: Pro | Priority: **Next 90 days**
 
 ---
 
@@ -152,7 +207,7 @@ Perplexity or OpenAI ships a built-in startup validator. Assume this happens wit
 - University funds if applicable
 
 ### One-paragraph pitch
-"Every year, 500 million people explore starting a business. Most waste months on manual market research before realizing the idea doesn't work. Verdict uses live AI search to give founders a complete validation report — real market data, real competitors, a Go/No-Go verdict — in 60 seconds, personalized to who they are as a founder. We're building the Bloomberg Terminal for early-stage founder decision-making, starting with idea validation and expanding into fundraising readiness, team formation, and ongoing market intelligence."
+"Every year, hundreds of millions of people explore starting a business. Most waste weeks on scattered Googling before they have a coherent picture of the market. Verdict uses live AI search to deliver a structured diligence memo — sizing, competitors, entry dynamics, a clear Go/Conditional/No-Go synthesis, and failure patterns in the space — in about a minute, personalized to the founder's profile. We're building the Bloomberg Terminal for early-stage founder judgment: fast structured research first, then deeper validation and monitoring as we grow."
 
 ---
 
@@ -172,6 +227,7 @@ Perplexity or OpenAI ships a built-in startup validator. Assume this happens wit
 2. **One-time tool, not a habit.** No reason to come back without re-scan, history, or team features.
 3. **The report is a deliverable, not a relationship.** Chatbot is underused.
 4. **Pricing asks for payment before trust is established.** Let users get full value first, then paywall.
+5. **Report can overclaim "validation."** Without bottom-up sizing, substitutes, kill criteria, and uncertainty, the memo reads more definitive than the evidence supports — address via **Report: Market Research Standards** above.
 
 ---
 
@@ -183,4 +239,4 @@ One accelerator contract at $6K/year = 500 individual subscribers.
 
 ---
 
-*Last updated: March 2026*
+*Last updated: March 2025*

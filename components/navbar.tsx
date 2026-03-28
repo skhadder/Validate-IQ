@@ -1,178 +1,106 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { LogoMark } from "@/components/logo-mark"
 
-const navItems = [
-  { label: "Features", href: "#features" },
+const navLinks = [
+  { label: "Product", href: "#product" },
   { label: "Pricing", href: "#pricing" },
+  { label: "FAQ", href: "#faq" },
 ]
 
-interface FundedStartup {
-  name: string
-  amount: string
-  round: string
-}
-
-function FundingTicker() {
-  const [startups, setStartups] = useState<FundedStartup[]>([])
-
-  useEffect(() => {
-    fetch("/api/funded-startups")
-      .then((r) => r.json())
-      .then((d) => setStartups(d.startups ?? []))
-      .catch(() => {})
-  }, [])
-
-  if (startups.length === 0) return null
-
-  // Duplicate for seamless loop
-  const items = [...startups, ...startups, ...startups]
-
-  return (
-    <div className="hidden md:flex items-center gap-3 flex-1 mx-6 px-4 py-2 rounded-full bg-[#000000]/90 backdrop-blur-md border border-[#2A2D35] overflow-hidden">
-      {/* Live label */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        <span className="relative flex h-1.5 w-1.5 shrink-0">
-          <span className="absolute inline-flex h-full w-full rounded-full bg-[#10B981] opacity-75 animate-ping" />
-          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#10B981]" />
-        </span>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-[#10B981]">Live</span>
-      </div>
-
-      {/* Divider */}
-      <div className="h-3 w-px shrink-0 bg-[#2A2D35]" />
-
-      {/* Scrolling ticker */}
-      <div className="overflow-hidden flex-1 relative">
-        <style>{`
-          @keyframes ticker {
-            0%   { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-          .ticker-track {
-            display: flex;
-            width: max-content;
-            animation: ticker 60s linear infinite;
-          }
-          .ticker-track:hover { animation-play-state: paused; }
-        `}</style>
-        <div className="ticker-track">
-          {items.map((s, i) => (
-            <span key={i} className="flex items-center gap-1.5 pr-8 text-xs whitespace-nowrap">
-              <span className="font-semibold text-white">{s.name}</span>
-              <span className="text-[#10B981] font-medium">{s.amount}</span>
-              <span className="text-[#6B7280]">{s.round}</span>
-              <span className="text-[#2A2D35] ml-4">·</span>
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export function Navbar() {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [hidden, setHidden] = useState(false)
-  const navRef = useRef<HTMLDivElement>(null)
-  const lastScrollY = useRef(0)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const router = useRouter()
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const current = window.scrollY
-      setHidden(current > lastScrollY.current && current > 80)
-      lastScrollY.current = current
-    }
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
-
   return (
-    <motion.header
-      initial={{ y: -100, opacity: 0 }}
-      animate={{ y: hidden ? -120 : 0, opacity: hidden ? 0 : 1 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed top-4 left-4 right-4 z-50"
-    >
-      <nav ref={navRef} className="relative flex items-center justify-between">
-        {/* Logo — extreme left */}
-        <a href="/" className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#000000]/90 backdrop-blur-md border border-[#2A2D35]">
-          <LogoMark />
-          <span className="font-bold text-white text-lg hidden sm:block">Verdict</span>
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[var(--landing-bg)]/90 backdrop-blur-md">
+      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <a
+          href="/"
+          className="font-heading text-xl font-bold tracking-[0.2em] text-white sm:text-2xl"
+          style={{ fontFamily: "var(--font-dm-sans), system-ui, sans-serif" }}
+        >
+          VERDICT
         </a>
 
-        {/* Center — funding ticker */}
-        <FundingTicker />
-
-        {/* Right side: nav links + Get Started — extreme right */}
-        <div className="hidden md:flex items-center gap-1 px-3 py-2 rounded-full bg-[#000000]/90 backdrop-blur-md border border-[#2A2D35]">
-          {navItems.map((item, index) => (
+        <div className="absolute left-1/2 hidden -translate-x-1/2 md:flex md:items-center md:gap-10">
+          {navLinks.map((item) => (
             <a
-              key={item.label}
+              key={item.href}
               href={item.href}
-              className="relative px-4 py-1.5 text-sm text-[#6B7280] hover:text-white transition-colors"
-              onMouseEnter={() => setHoveredIndex(index)}
-              onMouseLeave={() => setHoveredIndex(null)}
+              className="text-xs font-semibold tracking-[0.2em] text-[var(--landing-muted)] transition-colors hover:text-white"
             >
-              {hoveredIndex === index && (
-                <motion.div
-                  layoutId="navbar-hover"
-                  className="absolute inset-0 bg-[#1C1F26] rounded-full"
-                  initial={false}
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                />
-              )}
-              <span className="relative z-10">{item.label}</span>
+              {item.label.toUpperCase()}
             </a>
           ))}
-          <Button size="sm" onClick={() => router.push("/workspace")} className="shimmer-btn bg-[#10B981] text-white hover:bg-[#059669] rounded-full px-4 ml-2">
-            Get Started
+        </div>
+
+        <div className="hidden items-center gap-6 md:flex">
+          <button
+            type="button"
+            onClick={() => router.push("/sign-in")}
+            className="text-xs font-semibold tracking-wide text-[var(--landing-muted)] transition-colors hover:text-white"
+          >
+            Sign in
+          </button>
+          <Button
+            size="sm"
+            onClick={() => router.push("/workspace")}
+            className="h-9 rounded-md border-0 bg-white px-5 text-xs font-semibold tracking-wide text-[var(--landing-cta-on-light)] hover:bg-slate-200"
+          >
+            Run a memo
           </Button>
         </div>
 
-        {/* Mobile Menu Button */}
-        <div className="md:hidden px-3 py-2.5 rounded-full bg-[#000000]/90 backdrop-blur-md border border-[#2A2D35]">
-          <button
-            className="text-[#6B7280] hover:text-white"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
+        <button
+          type="button"
+          className="flex h-10 w-10 items-center justify-center rounded-md border border-[var(--landing-border)] text-[var(--landing-muted)] md:hidden"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label="Toggle menu"
+        >
+          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
       </nav>
 
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="absolute top-full left-0 right-0 mt-2 p-4 rounded-2xl bg-[#000000]/98 backdrop-blur-md border border-[#2A2D35]"
-        >
-          <div className="flex flex-col gap-2">
-            {navItems.map((item) => (
+      {mobileOpen && (
+        <div className="border-b border-[var(--landing-border)] bg-[var(--landing-bg)] px-4 py-4 md:hidden">
+          <div className="flex flex-col gap-3">
+            {navLinks.map((item) => (
               <a
-                key={item.label}
+                key={item.href}
                 href={item.href}
-                className="px-4 py-3 text-sm text-[#6B7280] hover:text-white hover:bg-[#1C1F26] rounded-lg transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 text-sm font-medium text-[var(--landing-muted)]"
+                onClick={() => setMobileOpen(false)}
               >
                 {item.label}
               </a>
             ))}
-            <hr className="border-[#2A2D35] my-2" />
-            <Button onClick={() => router.push("/workspace")} className="shimmer-btn bg-[#10B981] text-white hover:bg-[#059669] rounded-full">Get Started</Button>
+            <button
+              type="button"
+              onClick={() => {
+                setMobileOpen(false)
+                router.push("/sign-in")
+              }}
+              className="py-2 text-left text-sm font-medium text-[var(--landing-muted)]"
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMobileOpen(false)
+                router.push("/workspace")
+              }}
+              className="mt-1 rounded-md bg-white py-3 text-sm font-semibold text-[var(--landing-cta-on-light)]"
+            >
+              Run a memo
+            </button>
           </div>
-        </motion.div>
+        </div>
       )}
-    </motion.header>
+    </header>
   )
 }

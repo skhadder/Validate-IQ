@@ -1,23 +1,37 @@
 export function FinalCTA() {
   return (
-    <section className="relative overflow-hidden bg-[#000000] px-4 pb-0 pt-0 [font-family:var(--font-inter),system-ui,sans-serif]">
-      <footer className="relative z-10 border-t border-[#2A2D35] px-4 py-8">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 text-sm sm:flex-row sm:gap-4">
-          <span className="font-semibold text-white">Verdict</span>
-          <nav className="flex flex-wrap items-center justify-center gap-6">
-            <a href="#" className="text-[#6B7280] transition-colors hover:text-white">
-              Privacy
-            </a>
-            <a href="#" className="text-[#6B7280] transition-colors hover:text-white">
-              Terms
-            </a>
-            <a href="#" className="text-[#6B7280] transition-colors hover:text-white">
-              Twitter
-            </a>
-          </nav>
-          <p className="text-center text-[#6B7280] sm:text-right">© 2026 Verdict. Built for builders.</p>
+    <footer
+      className="border-t border-[var(--landing-border)] bg-[var(--landing-bg)] px-4 py-16"
+      style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}
+    >
+      <div className="mx-auto max-w-6xl">
+        <div className="flex flex-col items-center text-center">
+          <p
+            className="font-heading text-4xl font-bold tracking-[0.15em] text-white sm:text-5xl"
+            style={{ fontFamily: "var(--font-dm-sans), system-ui, sans-serif" }}
+          >
+            VERDICT
+          </p>
+          <p className="mt-6 text-xs font-medium uppercase tracking-[0.2em] text-[var(--landing-muted)]">
+            © {new Date().getFullYear()} Verdict. All rights reserved.
+          </p>
         </div>
-      </footer>
-    </section>
+
+        <nav className="mt-12 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 border-t border-[var(--landing-border)] pt-10">
+          <a href="#" className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--landing-muted)] transition-colors hover:text-white">
+            Privacy policy
+          </a>
+          <a href="#" className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--landing-muted)] transition-colors hover:text-white">
+            Terms of service
+          </a>
+          <a href="mailto:support@verdict.app" className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--landing-muted)] transition-colors hover:text-white">
+            Contact support
+          </a>
+          <a href="#faq" className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--landing-muted)] transition-colors hover:text-white">
+            Diligence framework
+          </a>
+        </nav>
+      </div>
+    </footer>
   )
 }
